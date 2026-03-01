@@ -24,8 +24,11 @@ then
 		"high")
 		    do_overclock 1608000
 		    ;;
-		"none")
+		"medium")
 		    do_overclock 1416000
+		    ;;
+		"none")
+		    do_overclock 1200000
 		    ;;
 		"low")
 		    do_overclock 816000
@@ -34,8 +37,8 @@ then
 		    do_overclock 408000
 		    ;;
 		*)
-		    # default
-		    do_overclock 1416000
+		    # default (matches "none")
+		    do_overclock 1200000
 		    ;;
 	    esac
 fi

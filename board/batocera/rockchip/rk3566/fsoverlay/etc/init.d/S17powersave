@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# RK3566 board-specific power saving tweaks for battery life.
+# Runs before S18governor (CPU governor tuning).
+#
+
+case "$1" in
+    start|restart|reload)
+        # --- GPU: use simple_ondemand governor for dynamic frequency scaling ---
+        # Scales 200-900MHz based on GPU load reported by the Mali BSP driver.
+        GPU=/sys/class/devfreq/fde60000.gpu
+        if [ -d "$GPU" ]; then
+            echo simple_ondemand > "$GPU/governor" 2>/dev/null
+        fi
+
+        # --- HDMI: disable PHY when not connected to save ~50-100mW ---
+        HDMI_STATE=$(cat /sys/devices/platform/fe0a0000.hdmi/extcon/hdmi/state 2>/dev/null)
+        if [ "$HDMI_STATE" = "disconnected" ] || [ "$HDMI_STATE" = "HDMI=0" ]; then
+            echo off > /sys/devices/platform/fe0a0000.hdmi/power/control 2>/dev/null
+        fi
+
+        # --- USB: disable autosuspend globally to prevent WiFi disconnections ---
+        # The RTL8733BU WiFi adapter is the only USB device on this board.
+        # USB autosuspend causes it to drop on suspend/resume cycles.
+        # Setting autosuspend=-1 prevents resume from re-enabling it.
+        echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null
+        for usbdev in /sys/bus/usb/devices/[0-9]*; do
+            [ -f "$usbdev/power/control" ] && echo on > "$usbdev/power/control" 2>/dev/null
+        done
+
+        # --- WiFi: fix MTU (RTL8733BU defaults to 4052, causing packet drops) ---
+        if [ -d /sys/class/net/wlan0 ]; then
+            ip link set wlan0 mtu 1500 2>/dev/null
+        fi
+
+        # --- Charger: disable wakeup so plug/unplug doesn't wake from suspend ---
+        # The RK817 charger plug_in/plug_out IRQs wake the system from suspend
+        # even with the lid closed. Disable charger wakeup while keeping the
+        # power button (rk805-pwrkey) as a valid wakeup source.
+        for ps in ac usb; do
+            wakeup="/sys/class/power_supply/$ps/device/power/wakeup"
+            [ -f "$wakeup" ] && echo disabled > "$wakeup" 2>/dev/null
+        done
+
+        # --- PipeWire: enable suspend-on-idle to stop audio DMA when silent ---
+        if [ -d /sys/module/snd_soc_rk817 ]; then
+            echo 5 > /sys/module/snd_pcm/parameters/preallocate_dma 2>/dev/null
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|restart|reload}"
+        exit 1
+        ;;
+esac

@@ -32,14 +32,13 @@ do_poweroff() {
     else
         sync
 
-        # Start a background process that waits for a timeout duration before forcing shutdown
-        ( sleep 5 && reboot -f -p ) &
+        # Start a detached watchdog that force-powers-off after 15 seconds.
+        # Must use setsid so it survives init's SIGTERM to all process groups
+        # during the shutdown sequence (especially when called via ES's system()).
+        setsid sh -c 'sleep 15 && reboot -f -p' &
 
         # Try a clean shutdown
         shutdown -Ph now
-
-        # If we reach this point, the shutdown was successful and we can kill the background job
-        kill $!
     fi
 }
 

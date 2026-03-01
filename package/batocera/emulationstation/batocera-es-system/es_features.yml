@@ -7062,6 +7062,25 @@ libretro:
                     #"None":          0
                     "Saturn Pad":    1
                     "Saturn 3D Pad": 5
+            yabasanshiro_frameskip:
+                prompt: FRAMESKIP
+                description: Skip frames to improve performance at the cost of visual smoothness.
+                choices:
+                    "Off": disabled
+                    "On":  enabled
+            yabasanshiro_addon_cart:
+                prompt: ADDON CARTRIDGE
+                description: Some games require or benefit from RAM expansion cartridge emulation.
+                choices:
+                    "None":   none
+                    "1MB RAM": 1M_extended_ram
+                    "4MB RAM": 4M_extended_ram
+            yabasanshiro_sh2coretype:
+                prompt: SH2 CORE TYPE
+                description: Select the SH2 CPU interpreter. Kronos is a faster cached interpreter, Yabause is the legacy interpreter.
+                choices:
+                    "Kronos (Default)": kronos
+                    "Yabause":          yabause
             yabasanshiro_language:
                 prompt: LANGUAGE
                 description: Change the system's language.

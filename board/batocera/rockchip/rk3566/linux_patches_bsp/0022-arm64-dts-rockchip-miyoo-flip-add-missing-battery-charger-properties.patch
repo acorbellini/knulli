@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Sun, 02 Mar 2026 23:00:00 -0300
+Subject: [PATCH] arm64: dts: rockchip: miyoo-flip: add missing battery and
+ charger properties
+
+The RK817 battery fuel gauge and charger drivers log warnings for
+several missing device tree properties at boot:
+
+  rk817-battery: fb_temperature missing!
+  rk817-battery: energy_mode missing!
+  rk817-battery: zero_reserve_dsoc missing!
+  rk817-charger: power_dc2otg missing!
+  rk817-charger: sample_res missing!
+  rk817-charger: otg5v_suspend_enable missing!
+
+While these have defaults, the fb_temperature default of 115C is
+inappropriate for a handheld device battery (should be 105C), and
+the charger's sample_res must match the battery node's 10 mOhm
+sense resistor for accurate current measurement.
+
+Add the missing properties with values matching the RK3566 reference
+tablet DTS and the Miyoo Flip hardware configuration.
+
+Signed-off-by: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+---
+ .../dts/rockchip/rk3566-miyoo-355-v10-linux.dts   | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-miyoo-355-v10-linux.dts b/arch/arm64/boot/dts/rockchip/rk3566-miyoo-355-v10-linux.dts
+index 1111111111..2222222222 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-miyoo-355-v10-linux.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3566-miyoo-355-v10-linux.dts
+@@ -827,6 +827,10 @@
+ 			monitor_sec = <5>;
+ 			sample_res = <10>;
+ 			virtual_power = <0>;
++			fb_temperature = <105>;
++			energy_mode = <0>;
++			zero_reserve_dsoc = <10>;
++			low_power_sleep = <1>;
+ 		};
+
+ 		charger {
+@@ -841,6 +845,9 @@
+ 			dc_det_adc = <0>;
+ 			extcon = <&usb2phy0>;
+ 			gate_function_disable = <1>;
++			sample_res = <10>;
++			power_dc2otg = <0>;
++			otg5v_suspend_enable = <1>;
+ 		};
+
+ 		rk817_codec: codec {
+--
+2.43.0
+

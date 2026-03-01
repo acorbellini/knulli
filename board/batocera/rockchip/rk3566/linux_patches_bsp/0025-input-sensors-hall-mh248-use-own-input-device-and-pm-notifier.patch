@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Tue, 03 Mar 2026 23:00:00 -0300
+Subject: [PATCH] input: sensors: hall: mh248: replace fb_notifier with PM
+ notifier and use KEY_INSERT for lid close
+
+The mh248 hall sensor driver has two issues on Linux (non-Android)
+systems:
+
+1. It tracks suspend state via fb_notifier (FB_BLANK/UNBLANK), which
+   does not work on DRM-based systems where fbdev emulation may not
+   generate blank events. This causes is_suspend to stay at 0. Replace
+   with a PM notifier that reliably tracks suspend/resume transitions.
+
+2. It sends KEY_POWER for lid close, which conflicts with the
+   power-button script that uses flock + inotifywait with a 2s timeout.
+   If the lid is closed within 4s of a previous close/open cycle, the
+   power-button script is still holding the lock and the new event is
+   silently dropped. Send KEY_INSERT instead, which is already mapped
+   to /usr/bin/lid-suspend in the triggerhappy configuration.
+
+Signed-off-by: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+---
+ drivers/input/sensors/hall/mh248.c | 30 +++++++++++++-----------------
+ 1 file changed, 13 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/input/sensors/hall/mh248.c b/drivers/input/sensors/hall/mh248.c
+index 1111111111..2222222222 100644
+--- a/drivers/input/sensors/hall/mh248.c
++++ b/drivers/input/sensors/hall/mh248.c
+@@ -22,13 +22,11 @@
+ #include <linux/of_gpio.h>
+ #include <linux/sensor-dev.h>
+ #include <linux/fb.h>
+-#include <linux/notifier.h>
+-#include <linux/rk_keys.h>
+-#include <linux/input.h>
++#include <linux/suspend.h>
+
+ struct mh248_para {
+ 	struct device *dev;
+-	struct notifier_block fb_notif;
++	struct notifier_block pm_notif;
+ 	struct mutex ops_lock;
+ 	struct input_dev *hall_input;
+ 	int is_suspend;
+@@ -37,25 +35,23 @@ struct mh248_para {
+ 	int active_value;
+ };
+
+-static int hall_fb_notifier_callback(struct notifier_block *self,
++static int hall_pm_notifier_callback(struct notifier_block *self,
+ 				     unsigned long action, void *data)
+ {
+ 	struct mh248_para *mh248;
+-	struct fb_event *event = data;
+
+-	mh248 = container_of(self, struct mh248_para, fb_notif);
++	mh248 = container_of(self, struct mh248_para, pm_notif);
+
+-	if (action != FB_EVENT_BLANK)
+-		return NOTIFY_DONE;
+-
+ 	mutex_lock(&mh248->ops_lock);
+-	switch (*((int *)event->data)) {
+-	case FB_BLANK_UNBLANK:
+-		mh248->is_suspend = 0;
+-		break;
+-	default:
++	switch (action) {
++	case PM_SUSPEND_PREPARE:
++	case PM_HIBERNATION_PREPARE:
+ 		mh248->is_suspend = 1;
+ 		break;
++	case PM_POST_SUSPEND:
++	case PM_POST_HIBERNATION:
++		mh248->is_suspend = 0;
++		break;
+ 	}
+ 	mutex_unlock(&mh248->ops_lock);
+
+@@ -70,9 +66,9 @@ static irqreturn_t hall_mh248_interrupt(int irq, void *dev_id)
+ 	gpio_value = gpio_get_value(mh248->gpio_pin);
+ 	if ((gpio_value != mh248->active_value) &&
+ 	    (mh248->is_suspend == 0)) {
+-		input_report_key(mh248->hall_input, KEY_POWER, 1);
++		input_report_key(mh248->hall_input, KEY_INSERT, 1);
+ 		input_sync(mh248->hall_input);
+-		input_report_key(mh248->hall_input, KEY_POWER, 0);
++		input_report_key(mh248->hall_input, KEY_INSERT, 0);
+ 		input_sync(mh248->hall_input);
+ 	} else if ((gpio_value == mh248->active_value) &&
+ 		   (mh248->is_suspend == 1)) {
+@@ -135,7 +131,7 @@ static int hall_mh248_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 	}
+ 	mh248->hall_input->name = "hall wake key";
+-	input_set_capability(mh248->hall_input, EV_KEY, KEY_POWER);
++	input_set_capability(mh248->hall_input, EV_KEY, KEY_INSERT);
+ 	input_set_capability(mh248->hall_input, EV_KEY, KEY_WAKEUP);
+
+ 	ret = input_register_device(mh248->hall_input);
+@@ -145,8 +141,8 @@ static int hall_mh248_probe(struct platform_device *pdev)
+ 	}
+
+ 	enable_irq_wake(mh248->irq);
+-	mh248->fb_notif.notifier_call = hall_fb_notifier_callback;
+-	fb_register_client(&mh248->fb_notif);
++	mh248->pm_notif.notifier_call = hall_pm_notifier_callback;
++	register_pm_notifier(&mh248->pm_notif);
+ 	dev_info(mh248->dev, "hall_mh248_probe success.\n");
+
+ 	return 0;
+--
+2.43.0
+

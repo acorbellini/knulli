@@ -1,8 +1,8 @@
 #!/bin/sh
 
 ### choose configuration file
-BATOCONF="/userdata/system/batocera.conf"
-DEFAULTCONF="/usr/share/batocera/datainit/system/batocera.conf"
+BATOCONF="/userdata/system/knulli.conf"
+DEFAULTCONF="/usr/share/batocera/datainit/system/knulli.conf"
 BOOTCONF="/boot/batocera-boot.conf"
 
 # if /userdata is not yet available
@@ -47,10 +47,10 @@ batocera_hostname() {
 batocera_wifi_configure() {
     X=$1
 
-    settings_hide=false; settings_name="${X}"; settings_priority=
+    settings_hide=false; settings_name="${X}"; settings_priority=; settings_autoconnect=true
     [ "$X" = "1" ] && { X=; settings_name=default; }
     [ "$X" = ".hidden" ] && { settings_name=hidden_AP; settings_hide=true; }
-    [ "$X" = ".adhoc" ] && { settings_name=adhoc_AP; settings_priority=0; }
+    [ "$X" = ".adhoc" ] && { settings_name=adhoc_AP; settings_priority=0; settings_autoconnect=false; }
 
     settings_ssid="$(/usr/bin/batocera-settings-get -f "$BATOCONF" wifi${X}.ssid)"
     settings_key="$(/usr/bin/batocera-settings-get -f "$BATOCONF" wifi${X}.key)"
@@ -98,7 +98,7 @@ batocera_wifi_configure() {
 		Hidden=${settings_hide}
 		${optionalPassphrase}
 		${optionalPriority}
-		Autoconnect=true
+		Autoconnect=${settings_autoconnect}
 		[IPv6]
 		Method=off
 	_EOF_
@@ -108,9 +108,11 @@ batocera_wifi_configure() {
 }
 
 wifi_configure_all() {
-    for i in 1 2 3 .hidden .adhoc; do
-        batocera_wifi_configure "$i"
-    done
+    # Only configure the primary network — numbered slots (wifi2, wifi3, …)
+    # are a credential store for key lookup, not active connman configs.
+    batocera_wifi_configure 1
+    batocera_wifi_configure ".hidden"
+    batocera_wifi_configure ".adhoc"
 }
 
 wifi_enable() {
@@ -119,6 +121,10 @@ wifi_enable() {
 
     connmanctl enable wifi 2>/dev/null
     connmanctl scan wifi 2>/dev/null
+
+    # Disable WiFi power save — the xradio (xr819) driver's power save mode
+    # causes periodic "BSS lost" disconnections due to missed beacons
+    iw dev wlan0 set power_save off 2>/dev/null
 }
 
 wifi_disable() {
@@ -128,6 +134,11 @@ wifi_disable() {
 do_start() {
     batocera_hostname
     wifi_configure_all
+
+    # Disable IPv6 globally — this device only needs IPv4
+    sysctl -qw net.ipv6.conf.all.disable_ipv6=1 2>/dev/null
+    sysctl -qw net.ipv6.conf.default.disable_ipv6=1 2>/dev/null
+
     printf "Starting connman: "
     start-stop-daemon -S -q -m -b -p /var/run/connmand.pid --exec /usr/sbin/connmand -- -n -r 2>/dev/null
 

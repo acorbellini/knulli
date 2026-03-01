@@ -20,8 +20,29 @@
 -#include <linux/of_gpio_legacy.h>
 -#endif
  #include "rocknix-joypad.h"
- 
+
  /*----------------------------------------------------------------------------*/
+@@ -985,9 +981,10 @@
+ 	return 0;
+ }
+
+-static void joypad_remove(struct platform_device *pdev)
++static int joypad_remove(struct platform_device *pdev)
+ {
+ 	sysfs_remove_group(&pdev->dev.kobj, &joypad_attr_group);
++	return 0;
+ }
+ /*----------------------------------------------------------------------------*/
+ static const struct of_device_id joypad_of_match[] = {
+@@ -1000,7 +997,7 @@
+ /*----------------------------------------------------------------------------*/
+ static struct platform_driver joypad_driver = {
+ 	.probe = joypad_probe,
+-	.remove_new = joypad_remove,
++	.remove = joypad_remove,
+ 	.driver = {
+ 		.name = DRV_NAME,
+ 		.of_match_table = of_match_ptr(joypad_of_match),
 --- a/rocknix-singleadc-joypad.c	2025-01-12 19:44:39.000000000 +0000
 +++ b/rocknix-singleadc-joypad.c	2025-01-28 22:54:24.666556029 +0000
 @@ -11,11 +11,7 @@
@@ -37,20 +58,46 @@
  #include <linux/pwm.h>
  #include "rocknix-joypad.h"
 @@ -234,8 +230,6 @@
- 
+
  };
- 
+
 -extern struct input_dev * joypad_input_g;
 -
  static int pwm_vibrator_start(struct joypad *joypad)
  {
  	struct pwm_state state;
 @@ -1313,8 +1307,6 @@
- 
+
  	input->name = DRV_NAME;
- 
+
 -	joypad_input_g=input;
 -
  	device_property_read_string(dev, "joypad-name", &input->name);
  	input->phys = DRV_NAME"/input0";
- 
+
+@@ -1879,7 +1871,7 @@
+ 	return 0;
+ }
+
+-static void joypad_remove(struct platform_device *pdev)
++static int joypad_remove(struct platform_device *pdev)
+ {
+ 	struct joypad *joypad = platform_get_drvdata(pdev);
+
+@@ -1893,6 +1885,7 @@
+ 		}
+ 		dev_info(joypad->dev, "Miyoo serial logic stopped.\n");
+ 	}
++	return 0;
+ }
+ /*----------------------------------------------------------------------------*/
+ static const struct of_device_id joypad_of_match[] = {
+@@ -1908,7 +1901,7 @@
+ /*----------------------------------------------------------------------------*/
+ static struct platform_driver joypad_driver = {
+ 	.probe = joypad_probe,
+-	.remove_new = joypad_remove,
++	.remove = joypad_remove,
+ 	.driver = {
+ 		.name = DRV_NAME,
+ 		.pm = &joypad_pm_ops,

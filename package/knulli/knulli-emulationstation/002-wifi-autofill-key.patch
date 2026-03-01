@@ -1,0 +1,51 @@
+diff --git a/es-app/src/ApiSystem.cpp b/es-app/src/ApiSystem.cpp
+index 7742d39a7..a3d93adea 100644
+--- a/es-app/src/ApiSystem.cpp
++++ b/es-app/src/ApiSystem.cpp
+@@ -1587,6 +1587,14 @@ std::string ApiSystem::getWifiRoute()
+ 	return result[0];
+ }
+ 
++std::string ApiSystem::getWifiKey(const std::string& ssid)
++{
++	std::vector<std::string> result = executeEnumerationScript("knulli-wifi getkey \"" + ssid + "\"");
++	if (!result.empty())
++		return result[0];
++	return "";
++}
++
+ std::vector<std::string> ApiSystem::executeEnumerationScript(const std::string command)
+ {
+ 	LOG(LogDebug) << "ApiSystem::executeEnumerationScript -> " << command;
+diff --git a/es-app/src/ApiSystem.h b/es-app/src/ApiSystem.h
+index edd13e868..66b432708 100644
+--- a/es-app/src/ApiSystem.h
++++ b/es-app/src/ApiSystem.h
+@@ -265,6 +265,7 @@ public:
+ 	std::vector<std::string> getWifiNetworks(bool scan = false);
+ 	void scanWifiNetworks();
+ 	std::string getWifiRoute();
++	std::string getWifiKey(const std::string& ssid);
+ 
+ 	bool downloadFile(const std::string url, const std::string fileName, const std::string label = "", const std::function<void(const std::string)>& func = nullptr);
+ 	
+diff --git a/es-app/src/guis/GuiMenu.cpp b/es-app/src/guis/GuiMenu.cpp
+index 0f57e73fe..15813151d 100644
+--- a/es-app/src/guis/GuiMenu.cpp
++++ b/es-app/src/guis/GuiMenu.cpp
+@@ -4047,7 +4047,14 @@ void GuiMenu::openSoundSettings()
+ 
+ void GuiMenu::openWifiSettings(Window* win, std::string title, std::string data, const std::function<void(std::string)>& onsave)
+ {
+-	win->pushGui(new GuiWifi(win, title, data, onsave));
++	auto wrappedSave = [onsave](const std::string& ssid) {
++		onsave(ssid);
++		// Auto-fill stored key for known networks
++		std::string storedKey = ApiSystem::getInstance()->getWifiKey(ssid);
++		if (!storedKey.empty())
++			SystemConf::getInstance()->set("wifi.key", storedKey);
++	};
++	win->pushGui(new GuiWifi(win, title, data, wrappedSave));
+ }
+ 
+ void GuiMenu::openNetworkSettings(bool selectWifiEnable)

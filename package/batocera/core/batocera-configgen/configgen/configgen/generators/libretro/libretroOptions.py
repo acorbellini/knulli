@@ -2322,6 +2322,21 @@ def generateCoreSettings(coreSettings: UnixSettings, system: Emulator, rom: Path
         else:
             coreSettings.save('yabasanshiro_multitap_port1', '"disabled"')
             coreSettings.save('yabasanshiro_multitap_port2', '"disabled"')
+        # Frameskip
+        if system.isOptSet('yabasanshiro_frameskip'):
+            coreSettings.save('yabasanshiro_frameskip', '"' + system.config['yabasanshiro_frameskip'] + '"')
+        else:
+            coreSettings.save('yabasanshiro_frameskip', '"disabled"')
+        # Addon Cartridge
+        if system.isOptSet('yabasanshiro_addon_cart'):
+            coreSettings.save('yabasanshiro_addon_cartridge', '"' + system.config['yabasanshiro_addon_cart'] + '"')
+        else:
+            coreSettings.save('yabasanshiro_addon_cartridge', '"none"')
+        # SH2 Core
+        if system.isOptSet('yabasanshiro_sh2coretype'):
+            coreSettings.save('yabasanshiro_sh2coretype', '"' + system.config['yabasanshiro_sh2coretype'] + '"')
+        else:
+            coreSettings.save('yabasanshiro_sh2coretype', '"kronos"')
         # Language
         if system.isOptSet('yabasanshiro_language'):
             coreSettings.save('yabasanshiro_system_language', '"' + system.config['yabasanshiro_language'] + '"')

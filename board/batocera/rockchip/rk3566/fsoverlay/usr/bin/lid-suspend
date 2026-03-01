@@ -1,0 +1,5 @@
+#!/bin/sh
+# Suspend on lid close (hall sensor KEY_INSERT event).
+# This is separate from the power-button script to avoid its
+# flock + inotifywait timeout logic that can drop rapid events.
+pm-is-supported --suspend && pm-suspend

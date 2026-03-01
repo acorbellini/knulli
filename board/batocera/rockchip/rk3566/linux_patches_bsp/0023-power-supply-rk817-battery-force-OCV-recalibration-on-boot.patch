@@ -1,0 +1,75 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Mon, 03 Mar 2026 10:00:00 -0300
+Subject: [PATCH] power: supply: rk817-battery: force OCV recalibration on
+ boot
+
+When u-boot initializes the fuel gauge (is_initialized=true), the
+kernel driver blindly trusts the saved dsoc without any OCV
+validation. If u-boot's calibration is wrong, the reported capacity
+can be stuck far from reality (e.g. 55% at 4.3V) for hours until
+the smooth algorithm slowly corrects it.
+
+Fix this by performing an OCV voltage check even when u-boot has
+initialized the gauge. If the OCV-based SOC differs from the saved
+SOC by more than max_soc_offset (default 60%), override it. This
+ensures the battery percentage is reasonably accurate from boot
+rather than taking hours to converge.
+
+Guard against bogus OCV readings (e.g. 17mV when the ADC register
+has not yet been populated) by requiring the OCV voltage to be at
+least 2500mV before using it. A connected Li-ion cell can never be
+below ~2.5V in practice; if the reading is lower, skip recalibration
+and trust u-boot's value.
+
+Note: vol_to_soc() returns 0-100 but dsoc is stored as percentage
+times 1000 (0-100000), so scale appropriately when comparing and
+assigning.
+
+Signed-off-by: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+---
+ drivers/power/supply/rk817_battery.c | 30 ++++++++++++++++++++++++++++-
+ 1 file changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/power/supply/rk817_battery.c b/drivers/power/supply/rk817_battery.c
+--- a/drivers/power/supply/rk817_battery.c
++++ b/drivers/power/supply/rk817_battery.c
+@@ -1638,7 +1638,35 @@
+ 		goto finish;
+ 	} else if (battery->is_initialized) {
+ 		/* uboot initialized */
+-		BAT_INFO("initialized yet..\n");
++		BAT_INFO("uboot initialized: pre_soc=%d, pre_cap=%d\n",
++			 pre_soc, pre_cap);
++		/* Validate u-boot's SOC against OCV measurement.
++		 * vol_to_soc returns 0-100, but dsoc is 0-100000
++		 * (percentage * 1000), so scale for comparison.
++		 */
++		ocv_vol = rk817_bat_get_ocv_voltage(battery);
++		/* Sanity-check: a connected Li-ion cell is never below
++		 * ~2.5 V. If the OCV register returns less than 2500 mV
++		 * the ADC was not ready yet -- skip recalibration. */
++		if (ocv_vol < 2500) {
++			BAT_INFO("OCV reading too low (%d mV), "
++				 "skipping recalibration\n", ocv_vol);
++			goto finish;
++		}
++		ocv_soc = rk817_bat_vol_to_soc(battery, ocv_vol);
++		ocv_cap = rk817_bat_vol_to_cap(battery, ocv_vol);
++		if (abs(ocv_soc * 1000 - pre_soc) >=
++		    battery->pdata->max_soc_offset * 1000) {
++			BAT_INFO("uboot SOC wrong, OCV recalib: "
++				 "dsoc %d -> %d (ocv_vol=%d)\n",
++				 pre_soc / 1000, ocv_soc, ocv_vol);
++			pre_soc = ocv_soc * 1000;
++			pre_cap = ocv_cap;
++			rk817_bat_init_coulomb_cap(battery, ocv_cap);
++		} else {
++			BAT_INFO("uboot SOC ok (ocv_soc=%d, ocv_vol=%d)\n",
++				 ocv_soc, ocv_vol);
++		}
+ 		goto finish;
+ 	} else if (battery->is_ocv_calib) {
+ 		/* not initialized and poweroff_cnt above 30 min */
+--
+2.43.0

@@ -1295,6 +1295,11 @@ msgctxt "game_options"
 msgid "3x native (768 x 576)"
 msgstr "3x native (768 x 576)"
 
+#. TRANSLATION: lexaloffle/pcsx2
+msgctxt "game_options"
+msgid "4 (Default)"
+msgstr ""
+
 #. TRANSLATION: libretro/potator
 msgctxt "game_options"
 msgid "4 Frames"
@@ -2579,6 +2584,11 @@ msgctxt "game_options"
 msgid "Adjusts Full Motion Video movies aspect ratio."
 msgstr "Past de beeldverhouding van Full Motion Video-films aan."
 
+#. TRANSLATION: sh
+msgctxt "game_options"
+msgid "Adjusts face buttons to match Xbox controller button labels."
+msgstr ""
+
 #. TRANSLATION: melonds
 msgctxt "game_options"
 msgid "Adjusts the positions of the screens."
@@ -2767,42 +2777,42 @@ msgctxt "game_options"
 msgid "Analog"
 msgstr "Analoog"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 1 Down"
 msgstr "Analoog 1 Omlaag"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 1 Left"
 msgstr "Analoog 1 Links"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 1 Right"
 msgstr "Analoog 1 Rechts"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 1 Up"
 msgstr "Analoog 1 Omhoog"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 2 Down"
 msgstr "Analoog 2 Omlaag"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 2 Left"
 msgstr "Analoog 2 Links"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 2 Right"
 msgstr "Analoog 2 Rechts"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Analog 2 Up"
 msgstr "Analoog 2 Omhoog"
@@ -3802,6 +3812,11 @@ msgstr "C64 PAL Automatisch"
 msgctxt "game_options"
 msgid "CABLE"
 msgstr "KABEL"
+
+#. TRANSLATION: lexaloffle/pcsx2
+msgctxt "game_options"
+msgid "CART PREFETCH THREADS"
+msgstr ""
 
 #. TRANSLATION: libretro/mame, mame/pcsx2
 msgctxt "game_options"
@@ -4847,7 +4862,7 @@ msgctxt "game_options"
 msgid "Close app on the remote host when quitting Moonlight."
 msgstr "Sluit de app op de externe host wanneer u Moonlight afsluit."
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Coin"
 msgstr "Munt"
@@ -4950,7 +4965,7 @@ msgctxt "game_options"
 msgid "Config"
 msgstr "Configuratie"
 
-#. TRANSLATION: jaguarcd.bigpemu.keys, jaguar.bigpemu.keys
+#. TRANSLATION: jaguar.bigpemu.keys, jaguarcd.bigpemu.keys
 msgctxt "keys_files"
 msgid "Configuration menu"
 msgstr "Configuratiemenu"
@@ -5600,22 +5615,22 @@ msgctxt "game_options"
 msgid "Digital Controller (Gamepad)"
 msgstr "Digitale Controller (Gamepad)"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Digital Down"
 msgstr "Digitaal Omlaag"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Digital Left"
 msgstr "Digitaal Links"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Digital Right"
 msgstr "Digitaal Rechts"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Digital Up"
 msgstr "Digitaal Omhoog"
@@ -5719,11 +5734,6 @@ msgid "Display on screen information like savestate, config warning etc..."
 msgstr ""
 "Informatieweergave op het scherm zoals savestate, configuratiewaarschuwing "
 "enz..."
-
-#. TRANSLATION: wiiu.keys
-msgctxt "keys_files"
-msgid "Display the controller screen"
-msgstr "Laat het controller scherm zien"
 
 #. TRANSLATION: nds.drastic.keys
 msgctxt "keys_files"
@@ -5952,6 +5962,11 @@ msgctxt "game_options"
 msgid "ENABLE DEBUG"
 msgstr "DEBUG INSCHAKELEN"
 
+#. TRANSLATION: advanced_drastic
+msgctxt "game_options"
+msgid "ENABLE FRAMESKIP"
+msgstr ""
+
 #. TRANSLATION: model2emu
 msgctxt "game_options"
 msgid "ENABLE FULL-SCREEN ANTI-ALIASING"
@@ -6052,7 +6067,7 @@ msgctxt "game_options"
 msgid "ENABLE XIM"
 msgstr "XIM INSCHAKELEN"
 
-#. TRANSLATION: drastic, libretro/pcsx_rearmed
+#. TRANSLATION: advanced_drastic, drastic, libretro/pcsx_rearmed
 msgctxt "game_options"
 msgid "ENHANCED RENDERING RESOLUTION"
 msgstr "VERBETERDE RENDERRESOLUTIE"
@@ -6638,7 +6653,7 @@ msgctxt "game_options"
 msgid "Enhancement. 3 point is accurate to N64, standard is better."
 msgstr "Verbetering. 3 punten is nauwkeurig tot N64, standaard is beter."
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid "Enhancement. Double the rendering resolution. Makes 3D objects clearer."
 msgstr ""
@@ -6873,7 +6888,7 @@ msgctxt "keys_files"
 msgid "Exit Steam"
 msgstr "Sluit Steam af"
 
-#. TRANSLATION: xbox360.xenia-canary.keys, scummvm.keys, singe.hypseus-singe.keys, daphne.hypseus-singe.keys, psp.ppsspp.keys, ...
+#. TRANSLATION: scummvm.keys, 3ds.citra.keys, model2.model2emu.keys, c64.vice.keys, c128.vice.keys, ...
 msgctxt "keys_files"
 msgid "Exit emulator"
 msgstr "Verlaat emulator"
@@ -6883,7 +6898,7 @@ msgctxt "keys_files"
 msgid "Exit emulator using SDL"
 msgstr "Sluit de emulator af met SDL"
 
-#. TRANSLATION: sonic-mania.keys, fallout1-ce.keys, jazz2.keys, fallout2-ce.keys, etlegacy.keys, ...
+#. TRANSLATION: fallout1-ce.keys, jazz2.keys, sonic-mania.keys, sonic3-air.keys, etlegacy.keys, ...
 msgctxt "keys_files"
 msgid "Exit game"
 msgstr "Stop spel"
@@ -6893,7 +6908,7 @@ msgctxt "keys_files"
 msgid "Exit running Flatpak"
 msgstr "Stop het draaien van Flatpak"
 
-#. TRANSLATION: openjazz.keys, theforceengine.keys, rott.keys, jaguarcd.bigpemu.keys, jaguar.bigpemu.keys, ...
+#. TRANSLATION: switch.ryujinx.keys, vpinball.keys, jaguar.bigpemu.keys, jaguarcd.bigpemu.keys, naomi2.demul.keys, ...
 msgctxt "keys_files"
 msgid "Exit the emulator"
 msgstr "Verlaat de emulator"
@@ -7115,7 +7130,7 @@ msgctxt "game_options"
 msgid "FRAMESKIP TYPE"
 msgstr "FRAMESKIP TYPE"
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid "FRAMESKIP VALUE"
 msgstr "FRAMESKIP WAARDE"
@@ -7168,7 +7183,7 @@ msgctxt "game_options"
 msgid "Famicom (FDS)"
 msgstr "Famicom (FDS)"
 
-#. TRANSLATION: mame.keys, psp.ppsspp.keys, psx.duckstation.keys
+#. TRANSLATION: psx.duckstation.keys, atomiswave.flycast.keys, dreamcast.flycast.keys, naomi.flycast.keys, naomi2.flycast.keys, ...
 msgctxt "keys_files"
 msgid "Fast Forward"
 msgstr "Vooruitspoelen"
@@ -7639,7 +7654,7 @@ msgctxt "game_options"
 msgid "GAME REGION (ENCODING)"
 msgstr "SPEL REGIO (ENCODING)"
 
-#. TRANSLATION: shared, shared, shared, shared
+#. TRANSLATION: shared, shared, shared, shared, shared
 msgctxt "game_options"
 msgid "GAME RENDERING & SHADERS"
 msgstr "GAME RENDERING & SHADERS"
@@ -8227,11 +8242,6 @@ msgctxt "game_options"
 msgid "HLE (per-strip)"
 msgstr "HLE (per-strip)"
 
-#. TRANSLATION: shared, shared, shared, shared, shared, ...
-msgctxt "game_options"
-msgid "HOTKEYS"
-msgstr ""
-
 #. TRANSLATION: scummvm
 msgctxt "game_options"
 msgid "HQ (bilinear filter)"
@@ -8351,7 +8361,7 @@ msgctxt "game_options"
 msgid "Hide"
 msgstr "Verbergen"
 
-#. TRANSLATION: jaguarcd.bigpemu.keys, jaguar.bigpemu.keys, dreamcast.redream.keys, atomiswave.flycast.keys, naomi2.flycast.keys, ...
+#. TRANSLATION: jaguar.bigpemu.keys, jaguarcd.bigpemu.keys, dreamcast.redream.keys
 msgctxt "keys_files"
 msgid "Hide the bezel"
 msgstr "Verberg de omlijsting"
@@ -8534,6 +8544,11 @@ msgctxt "game_options"
 msgid "INTEGER SCALING (PIXEL PERFECT)"
 msgstr "INTEGER SCHALING (PIXEL PERFECT)"
 
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "INTEGER SCALING AXIS"
+msgstr ""
+
 #. TRANSLATION: duckstation
 msgctxt "game_options"
 msgid "INTEGER UPSCALING"
@@ -8642,7 +8657,7 @@ msgctxt "game_options"
 msgid "Improves performance at the cost of latency and more video stuttering."
 msgstr "Verbetert prestatie ten koste van latency en haperende video."
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid "Improves performance in 3D games. Can cause glitches."
 msgstr "Verbeterd prestatie in 3D spellen. Kan glitches veroorzaken."
@@ -9347,7 +9362,7 @@ msgctxt "game_options"
 msgid "Linear"
 msgstr "Lineair"
 
-#. TRANSLATION: jaguarcd.bigpemu.keys, jaguar.bigpemu.keys, nds.drastic.keys, mame.keys, psp.ppsspp.keys, ...
+#. TRANSLATION: psx.duckstation.keys, nds.drastic.keys, atomiswave.flycast.keys, dreamcast.flycast.keys, naomi.flycast.keys, ...
 msgctxt "keys_files"
 msgid "Load State"
 msgstr "Laad Staat"
@@ -9899,7 +9914,7 @@ msgctxt "game_options"
 msgid "Menacer Light Gun"
 msgstr "Menacer Light Gun"
 
-#. TRANSLATION: scummvm.keys
+#. TRANSLATION: scummvm.keys, atomiswave.flycast.keys, dreamcast.flycast.keys, naomi.flycast.keys, naomi2.flycast.keys
 msgctxt "keys_files"
 msgid "Menu"
 msgstr "Menu"
@@ -11529,42 +11544,42 @@ msgctxt "game_options"
 msgid "Purupuru Pack/Vibration Pack"
 msgstr "Purupuru Pack/Vibratie Pack"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 1"
 msgstr "Druk 1"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 2"
 msgstr "Druk 2"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 3"
 msgstr "Druk 3"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 4"
 msgstr "Druk 4"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 5"
 msgstr "Druk 5"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 6"
 msgstr "Druk 6"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 7"
 msgstr "Druk 7"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Push 8"
 msgstr "Druk 8"
@@ -11584,22 +11599,22 @@ msgctxt "game_options"
 msgid "QUIT ON HOST"
 msgstr "STOP OP HOST"
 
-#. TRANSLATION: cgenius.cgenius.keys, theforceengine.keys, doom3.dhewm3.keys
+#. TRANSLATION: doom3.dhewm3.keys, theforceengine.keys, cgenius.cgenius.keys
 msgctxt "keys_files"
 msgid "Quick Load"
 msgstr "Snel Laden"
 
-#. TRANSLATION: cgenius.cgenius.keys, theforceengine.keys, doom3.dhewm3.keys
+#. TRANSLATION: doom3.dhewm3.keys, theforceengine.keys, cgenius.cgenius.keys
 msgctxt "keys_files"
 msgid "Quick Save"
 msgstr "Snel Opslaan"
 
-#. TRANSLATION: fallout1-ce.keys, fallout2-ce.keys, iortcw.keys, corsixth.keys
+#. TRANSLATION: corsixth.keys, fallout1-ce.keys, fallout2-ce.keys, iortcw.keys
 msgctxt "keys_files"
 msgid "Quick load"
 msgstr "Snel laden"
 
-#. TRANSLATION: fallout1-ce.keys, fallout2-ce.keys, iortcw.keys, corsixth.keys
+#. TRANSLATION: corsixth.keys, fallout1-ce.keys, fallout2-ce.keys, iortcw.keys
 msgctxt "keys_files"
 msgid "Quick save"
 msgstr "Snel opslaan"
@@ -11614,7 +11629,7 @@ msgctxt "game_options"
 msgid "Quickload"
 msgstr "Snellaad"
 
-#. TRANSLATION: xash3d_fwgs.keys, cannonball.keys, corsixth.keys
+#. TRANSLATION: corsixth.keys, cannonball.keys, xash3d_fwgs.keys
 msgctxt "keys_files"
 msgid "Quit the application"
 msgstr "Stop de applicatie"
@@ -11724,7 +11739,7 @@ msgctxt "game_options"
 msgid "RENDERING"
 msgstr "RENDEREN"
 
-#. TRANSLATION: ppsspp, thextech
+#. TRANSLATION: thextech
 msgctxt "game_options"
 msgid "RENDERING MODE"
 msgstr "RENDERMODUS"
@@ -11748,6 +11763,11 @@ msgstr "WIJZIG TATTOO"
 msgctxt "game_options"
 msgid "RESOLUTION MULTIPLIER"
 msgstr "RESOLUTIE MULTIPLIER"
+
+#. TRANSLATION: shared, shared, shared, shared, shared, ...
+msgctxt "game_options"
+msgid "RETROARCH HOTKEYS"
+msgstr ""
 
 #. TRANSLATION: shared
 msgctxt "game_options"
@@ -12085,7 +12105,7 @@ msgctxt "game_options"
 msgid "Retropad (Default)"
 msgstr "Retropad (Standaard)"
 
-#. TRANSLATION: psp.ppsspp.keys, psx.duckstation.keys
+#. TRANSLATION: psx.duckstation.keys, psp.ppsspp.keys
 msgctxt "keys_files"
 msgid "Rewind"
 msgstr "Terugspoelen"
@@ -12181,7 +12201,14 @@ msgctxt "keys_files"
 msgid "Rotates the current object"
 msgstr "Roteert het huidige object"
 
-#. TRANSLATION: libretro/fbneo, libretro/mame, libretro/mame078plus
+#. TRANSLATION: libretro/fbneo, libretro/mame
+msgctxt "game_options"
+msgid ""
+"Rotates the display and remaps inputs for compatible devices to be used "
+"sideways."
+msgstr ""
+
+#. TRANSLATION: libretro/mame078plus
 msgctxt "game_options"
 msgid "Rotates the display and remaps inputs for device to be used sideways."
 msgstr ""
@@ -12480,6 +12507,11 @@ msgctxt "game_options"
 msgid "SIO ACCELERATION"
 msgstr "SIO VERSNELLING"
 
+#. TRANSLATION: ppsspp
+msgctxt "game_options"
+msgid "SKIP BUFFER EFFECTS"
+msgstr ""
+
 #. TRANSLATION: theforceengine
 msgctxt "game_options"
 msgid "SKIP CUTSCENES"
@@ -12715,6 +12747,11 @@ msgctxt "game_options"
 msgid "SWAP GAMEPADS"
 msgstr "WISSEL CONTROLLERS"
 
+#. TRANSLATION: sh
+msgctxt "game_options"
+msgid "SWITCH A/B and X/Y"
+msgstr ""
+
 #. TRANSLATION: libretro/tgbdual
 msgctxt "game_options"
 msgid "SYNC SAVE FILES"
@@ -12755,7 +12792,7 @@ msgctxt "game_options"
 msgid "Saturn Pad"
 msgstr "Saturn Pad"
 
-#. TRANSLATION: jaguarcd.bigpemu.keys, jaguar.bigpemu.keys, nds.drastic.keys, mame.keys, psp.ppsspp.keys, ...
+#. TRANSLATION: psx.duckstation.keys, nds.drastic.keys, atomiswave.flycast.keys, dreamcast.flycast.keys, naomi.flycast.keys, ...
 msgctxt "keys_files"
 msgid "Save State"
 msgstr "Sla Staat Op"
@@ -12764,6 +12801,11 @@ msgstr "Sla Staat Op"
 msgctxt "keys_files"
 msgid "Save State Slot 1"
 msgstr "Save State Slot 1"
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Scale either height, width, or both."
+msgstr ""
 
 #. TRANSLATION: xemu
 msgctxt "game_options"
@@ -12815,7 +12857,7 @@ msgctxt "game_options"
 msgid "Screen inclination (degree)"
 msgstr "Schermhelling (graden)"
 
-#. TRANSLATION: iortcw.keys, jaguarcd.bigpemu.keys, jaguar.bigpemu.keys, scummvm.keys, mame.keys, ...
+#. TRANSLATION: psx.duckstation.keys, scummvm.keys, 3ds.citra.keys, doom3.dhewm3.keys, psp.ppsspp.keys, ...
 msgctxt "keys_files"
 msgid "Screenshot"
 msgstr "Screenshot"
@@ -12960,7 +13002,7 @@ msgctxt "game_options"
 msgid "Serbian"
 msgstr "Servisch"
 
-#. TRANSLATION: singe.hypseus-singe.keys, daphne.hypseus-singe.keys
+#. TRANSLATION: daphne.hypseus-singe.keys, singe.hypseus-singe.keys
 msgctxt "keys_files"
 msgid "Service menu"
 msgstr "Servicemenu"
@@ -13035,7 +13077,7 @@ msgid ""
 "Set the number of milliseconds to wait each frame to reduce power usage."
 msgstr ""
 
-#. TRANSLATION: gaelco.demul.keys, hikaru.demul.keys
+#. TRANSLATION: hikaru.demul.keys, gaelco.demul.keys
 msgctxt "keys_files"
 msgid "Set to full screen"
 msgstr "Instellen op volledig scherm"
@@ -13059,7 +13101,7 @@ msgctxt "game_options"
 msgid "Sets the window size to an integer size."
 msgstr "Stelt de venstergrootte in op een geheel getal."
 
-#. TRANSLATION: amigacdtv.fsuae.keys, amiga1200.fsuae.keys, amiga500.fsuae.keys, amigacd32.fsuae.keys
+#. TRANSLATION: amiga1200.fsuae.keys, amigacd32.fsuae.keys, amiga500.fsuae.keys, amigacdtv.fsuae.keys
 msgctxt "keys_files"
 msgid "Settings GUI"
 msgstr "Settings van de Grafische User Interface"
@@ -13302,18 +13344,17 @@ msgstr "Initieel overslaan"
 
 #. TRANSLATION: ppsspp
 msgctxt "game_options"
-msgid ""
-"Skip buffer disables auto frameskip and renders at display output resolution."
-msgstr ""
-"Skip buffer schakelt auto frameskip uit en rendert op beeldscherm output "
-"resolutie."
-
-#. TRANSLATION: ppsspp
-msgctxt "game_options"
 msgid "Skip buffer effects"
 msgstr "Buffer effecten overslaan"
 
-#. TRANSLATION: iortcw.keys, theforceengine.keys
+#. TRANSLATION: ppsspp
+msgctxt "game_options"
+msgid ""
+"Skip buffer effects disables auto frameskip and renders at display output "
+"resolution."
+msgstr ""
+
+#. TRANSLATION: theforceengine.keys, iortcw.keys
 msgctxt "keys_files"
 msgid "Skip cutscene"
 msgstr "Sla cutscene over"
@@ -13325,7 +13366,7 @@ msgstr ""
 "Slaat frames over om prestatie te verbeteren, ten koste van haperende "
 "beweging."
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid ""
 "Skip frames to improve performance, at the cost of choppy motion. Can cause "
@@ -13365,12 +13406,12 @@ msgctxt "game_options"
 msgid "Skynet"
 msgstr "Skynet"
 
-#. TRANSLATION: mame.keys, psp.ppsspp.keys, psx.duckstation.keys
+#. TRANSLATION: psx.duckstation.keys, psp.ppsspp.keys, mame.keys
 msgctxt "keys_files"
 msgid "Slot +"
 msgstr "Slot +"
 
-#. TRANSLATION: mame.keys, psp.ppsspp.keys, psx.duckstation.keys
+#. TRANSLATION: psx.duckstation.keys, psp.ppsspp.keys, mame.keys
 msgctxt "keys_files"
 msgid "Slot -"
 msgstr "Slot -"
@@ -13434,6 +13475,11 @@ msgstr "Kleine performance winst (kan framerate omlaag halen)."
 msgctxt "game_options"
 msgid "Smaller"
 msgstr "Sleiner"
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Smart"
+msgstr ""
 
 #. TRANSLATION: dxx-rebirth
 msgctxt "game_options"
@@ -13740,7 +13786,7 @@ msgctxt "game_options"
 msgid "Standard OpenGL (Default)"
 msgstr "Standaard OpenGL (Standaard)"
 
-#. TRANSLATION: naomi.demul.keys, gaelco.demul.keys, cave3rd.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, ...
+#. TRANSLATION: naomi2.demul.keys, naomi.demul.keys, dreamcast.demul.keys, hikaru.demul.keys, cave3rd.demul.keys, ...
 msgctxt "keys_files"
 msgid "Start"
 msgstr "Start"
@@ -14094,7 +14140,7 @@ msgctxt "game_options"
 msgid "TEXTURE UPSCALING TYPE"
 msgstr "TEXTURE OPSCHALEN TYPE"
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid "THREADED 3D"
 msgstr "THREADED 3D"
@@ -14344,6 +14390,13 @@ msgid ""
 msgstr ""
 "Dit zou niet nodig moeten zijn, tenzij u niet de standaard pad2key-"
 "toewijzing gebruikt."
+
+#. TRANSLATION: lexaloffle/pcsx2
+msgctxt "game_options"
+msgid ""
+"Threads used for pre-fetching carts in Splore (0 = disabled, download only "
+"when selected)."
+msgstr ""
 
 #. TRANSLATION: libretro/mame, mame/pcsx2
 msgctxt "game_options"
@@ -15278,7 +15331,7 @@ msgctxt "game_options"
 msgid "Videopac+ G7400 (France)"
 msgstr "Videopac+ G7400 (Frankrijk)"
 
-#. TRANSLATION: amigacdtv.fsuae.keys, amiga1200.fsuae.keys, amiga500.fsuae.keys, amigacd32.fsuae.keys
+#. TRANSLATION: amiga1200.fsuae.keys, amigacd32.fsuae.keys, amiga500.fsuae.keys, amigacdtv.fsuae.keys
 msgctxt "keys_files"
 msgid "Virtual Keyboard"
 msgstr "Virtueel toetsenbord"
@@ -15388,7 +15441,7 @@ msgctxt "game_options"
 msgid "Weave (Top Field First)"
 msgstr "Weave (Bovenste Veld Eerst)"
 
-#. TRANSLATION: drastic
+#. TRANSLATION: advanced_drastic, drastic
 msgctxt "game_options"
 msgid ""
 "When frameskip type is on automatic or manual, skip up to this many frames "
@@ -15507,6 +15560,16 @@ msgctxt "game_options"
 msgid "Works with 'Cycle-exact' mode and for a few games."
 msgstr "Werkt met 'Cycle-exact' modus en voor een paar spellen."
 
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "X"
+msgstr ""
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "X.5"
+msgstr ""
+
 #. TRANSLATION: libretro/mupen64plus-next
 msgctxt "game_options"
 msgid "X2"
@@ -15522,6 +15585,11 @@ msgctxt "game_options"
 msgid "XBOX LIVE ARCADE"
 msgstr "XBOX LIVE ARCADE"
 
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Y"
+msgstr ""
+
 #. TRANSLATION: libretro/vice_x128, libretro/vice_xpet, libretro/vice_xplus4, libretro/vice_xvic
 msgctxt "game_options"
 msgid "Y = Fire"
@@ -15531,6 +15599,21 @@ msgstr "Y = Vuur"
 msgctxt "game_options"
 msgid "Y = Fire, B = Up"
 msgstr "Y = Vuur, B = Omhoog"
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Y+X"
+msgstr ""
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Y+X.5"
+msgstr ""
+
+#. TRANSLATION: shared
+msgctxt "game_options"
+msgid "Y.5+X.5"
+msgstr ""
 
 #. TRANSLATION: tsugaru, vice
 msgctxt "game_options"
@@ -15902,12 +15985,12 @@ msgctxt "game_options"
 msgid "quick switch"
 msgstr "snel wisselen"
 
-#. TRANSLATION: gzdoom.keys, eduke32.keys, raze.keys
+#. TRANSLATION: eduke32.keys, raze.keys, gzdoom.keys
 msgctxt "keys_files"
 msgid "quickload"
 msgstr "snellaad"
 
-#. TRANSLATION: gzdoom.keys, eduke32.keys, raze.keys
+#. TRANSLATION: eduke32.keys, raze.keys, gzdoom.keys
 msgctxt "keys_files"
 msgid "quicksave"
 msgstr "snel opslaan"
@@ -15957,7 +16040,7 @@ msgctxt "game_options"
 msgid "scanlines"
 msgstr ""
 
-#. TRANSLATION: gzdoom.keys, eduke32.keys, raze.keys
+#. TRANSLATION: eduke32.keys, raze.keys, gzdoom.keys
 msgctxt "keys_files"
 msgid "screenshot"
 msgstr "screenshot"
@@ -16065,6 +16148,10 @@ msgstr "geel/blauw"
 #~ msgid "Cross"
 #~ msgstr "Kruis"
 
+#~ msgctxt "keys_files"
+#~ msgid "Display the controller screen"
+#~ msgstr "Laat het controller scherm zien"
+
 #~ msgctxt "game_options"
 #~ msgid "Dot"
 #~ msgstr "Dot"
@@ -16169,6 +16256,14 @@ msgstr "geel/blauw"
 #~ msgctxt "game_options"
 #~ msgid "Show/Hide guns borders for specific systems"
 #~ msgstr "Toon/verberg wapenranden voor specifieke systemen"
+
+#~ msgctxt "game_options"
+#~ msgid ""
+#~ "Skip buffer disables auto frameskip and renders at display output "
+#~ "resolution."
+#~ msgstr ""
+#~ "Skip buffer schakelt auto frameskip uit en rendert op beeldscherm output "
+#~ "resolutie."
 
 #~ msgctxt "game_options"
 #~ msgid "USE LIGHT GUNS"

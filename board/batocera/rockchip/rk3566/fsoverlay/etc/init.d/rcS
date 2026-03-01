@@ -1,18 +1,34 @@
 #!/bin/sh
 
+# Disable VT cursor — U-Boot bootargs don't include vt.global_cursor_default=0
+# and we can't change them (stock GammaOS U-Boot in SPI flash).
+echo 0 > /sys/class/graphics/fbcon/cursor_blink 2>/dev/null
+for tty in /dev/tty[0-9]*; do
+    printf '\033[?25l' > "$tty" 2>/dev/null
+done
+
 # Start the progress bar
 /usr/bin/progressbar &
 
 # Start all init scripts in /etc/init.d
 # executing them in numerical order.
 #
+# Count total scripts for progress bar
+TOTAL_SCRIPTS=0
+for i in /etc/init.d/S??* ; do
+    [ ! -f "$i" ] && continue
+    TOTAL_SCRIPTS=$((TOTAL_SCRIPTS + 1))
+done
+SCRIPT_NUM=0
+
 for i in /etc/init.d/S??* ; do
 
     # Ignore dangling symlinks (if any).
     [ ! -f "$i" ] && continue
 
-    # Update status for progress bar
-    echo "$i" > /tmp/status.txt
+    # Update status for progress bar (N/TOTAL path)
+    SCRIPT_NUM=$((SCRIPT_NUM + 1))
+    echo "$SCRIPT_NUM/$TOTAL_SCRIPTS $i" > /tmp/status.txt
 
     case "$i" in
         *.sh)
@@ -25,7 +41,7 @@ for i in /etc/init.d/S??* ; do
             ;;
         *)
             case "$i" in
-                *S00bootcustom | *S01dbus | *S02resize | *S03modules | *S04populate | *S05udev | *S06audio | *S06modprobe | *S11share | *S12populateshare) # Don't run these in background
+                *S00bootcustom | *S01dbus | *S02resize | *S03modules | *S04populate | *S05udev | *S06audio | *S06modprobe | *S11share | *S12populateshare | *S13knulli-conf-link) # Don't run these in background
                     $i start
                     ;;
                 *)
@@ -35,8 +51,10 @@ for i in /etc/init.d/S??* ; do
             ;;
     esac
 
-    echo QUIT > /tmp/status.txt
     echo $(date +"%F %T,%3N")": ${i} - started" >> /var/run/boot.log
 done
+
+# Signal progress bar that boot is complete
+echo "DONE" > /tmp/status.txt
 
 exit 0

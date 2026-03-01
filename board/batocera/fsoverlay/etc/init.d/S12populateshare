@@ -103,6 +103,7 @@ for FILE in music bios extractions kodi library saves screenshots recordings spl
             system/configs/xarcade2jstick \
             system/configs/theforceengine \
             system/batocera.conf \
+            system/knulli.conf \
             system/pacman/hooks/batocera-install.hook \
             system/pacman/hooks/batocera-uninstall.hook \
             system/pacman/pacman.conf \
@@ -113,7 +114,7 @@ for FILE in music bios extractions kodi library saves screenshots recordings spl
             system/configs/pironman5
 do
     # Skip updating specific files
-    if [ "$FILE" = "system/configs/emulationstation/es_settings.cfg" ] || [ "$FILE" = "system/batocera.conf" ] || [ "$FILE" = "system/.kodi/userdata/guisettings.xml" ]; then
+    if [ "$FILE" = "system/configs/emulationstation/es_settings.cfg" ] || [ "$FILE" = "system/batocera.conf" ] || [ "$FILE" = "system/knulli.conf" ] || [ "$FILE" = "system/.kodi/userdata/guisettings.xml" ]; then
         # Check if the file doesn't exist, then create it
         if [ ! -e "${OUT}/${FILE}" ]; then
             mkdir -p "$(dirname "${OUT}/${FILE}")"

@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# RK3566 board-specific CPU governor override.
+# Uses the 'interactive' governor with tuned parameters for battery life
+# while maintaining responsiveness for gaming.
+#
+
+POLICY=/sys/devices/system/cpu/cpufreq/policy0
+
+case "$1" in
+    start|restart|reload)
+        # Set interactive governor
+        for p in /sys/devices/system/cpu/cpufreq/policy*; do
+            echo interactive > "$p/scaling_governor" 2>/dev/null
+        done
+
+        # Tune for battery life:
+        #   hispeed_freq=816MHz - default "fast" speed (enough for ES menu)
+        #   go_hispeed_load=85  - jump to hispeed at 85% load
+        #   above_hispeed_delay=80ms - wait before going above hispeed
+        #   target_loads - require higher utilization for higher frequencies
+        #   timer_rate=20ms - check load every 20ms
+        if [ -d "$POLICY/interactive" ]; then
+            echo 816000 > "$POLICY/interactive/hispeed_freq"
+            echo 85     > "$POLICY/interactive/go_hispeed_load"
+            echo 80000  > "$POLICY/interactive/above_hispeed_delay"
+            echo "85 816000:90 1104000:95" > "$POLICY/interactive/target_loads"
+            echo 20000  > "$POLICY/interactive/timer_rate"
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|restart|reload}"
+        exit 1
+        ;;
+esac

@@ -254,7 +254,7 @@ define SDL2_DRASTIC_CONFIGURE_CMDS
         (cd $(@D); rm -rf config.cache; \
                 $(TARGET_CONFIGURE_ARGS) \
                 $(TARGET_CONFIGURE_OPTS) \
-                CFLAGS="$(TARGET_CFLAGS) $(SDL2_DRASTIC_TARGET_CFLAGS)" \
+                CFLAGS="-I$(@D)/include $(TARGET_CFLAGS) $(SDL2_DRASTIC_TARGET_CFLAGS)" \
                 LDFLAGS="$(TARGET_LDFLAGS) $(SDL2_DRASTIC_TARGET_LDFLAGS) -lc" \
                 CROSS_COMPILE="$(HOST_DIR)/usr/bin/" \
                 ./configure \

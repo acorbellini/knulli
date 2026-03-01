@@ -1,5 +1,9 @@
 #!/bin/sh
 
+CONF="/userdata/system/knulli.conf"
+settings_get() { batocera-settings-get -f "$CONF" "$@"; }
+settings_set() { batocera-settings-set -f "$CONF" "$@"; }
+
 notify() {
     [ -n "$1" ] && curl -s http://localhost:1234/notify -d "$1" >/dev/null
 }
@@ -42,6 +46,44 @@ wait_for_ip() {
     fi
 }
 
+disconnect_all_wifi() {
+    connmanctl services 2>/dev/null | awk '/wifi_/ {print $NF}' | while read svc; do
+        connmanctl disconnect "$svc" 2>/dev/null
+    done
+}
+
+# Stop connman, remove cached service state, restart with fresh provisioning.
+# The cached dirs must be removed AFTER connman stops — otherwise connman
+# recreates them during its graceful shutdown.
+connman_clean_restart() {
+    /etc/init.d/S20connman stop
+    rm -rf /var/lib/connman/wifi_* 2>/dev/null
+    sleep 0.5
+    /etc/init.d/S20connman start
+}
+
+save_previous_wifi() {
+    new_ssid="$1"
+    old_ssid="$(settings_get wifi.ssid)"
+    old_key="$(settings_get wifi.key)"
+
+    [ -z "$old_ssid" ] && return
+    [ "$old_ssid" = "$new_ssid" ] && return
+
+    # Check if already saved in any slot
+    n=2
+    while true; do
+        slot_ssid="$(settings_get wifi${n}.ssid)"
+        [ -z "$slot_ssid" ] && break
+        [ "$slot_ssid" = "$old_ssid" ] && return
+        n=$((n + 1))
+    done
+
+    # Save to the empty slot we found
+    settings_set wifi${n}.ssid "$old_ssid"
+    settings_set wifi${n}.key "$old_key"
+}
+
 get_route() {
     echo $(ip route show default | awk '/^default/ && $0 ~ /wl/ { print $3 }')
 }
@@ -79,14 +121,15 @@ case "${ACTION}" in
         /etc/init.d/S20connman restart
         ;;
     "enable")
-        batocera-settings-set wifi.enabled 1
+        settings_set wifi.enabled 1
         if [ $# -eq 2 ]; then
-            batocera-settings-set wifi.ssid "$1"
-            batocera-settings-set wifi.key "$2"
+            save_previous_wifi "$1"
+            settings_set wifi.ssid "$1"
+            settings_set wifi.key "$2"
         fi
-        /etc/init.d/S20connman reload
+        connman_clean_restart
 
-        settings_ssid="$(batocera-settings-get wifi.ssid)"
+        settings_ssid="$(settings_get wifi.ssid)"
 
         # We don't need to wait for an IP if no saved ssid
         if [ -n "${settings_ssid}" ]; then
@@ -96,9 +139,89 @@ case "${ACTION}" in
         fi
         ;;
     "disable")
-        batocera-settings-set wifi.enabled 0
-        /etc/init.d/S20connman reload
+        settings_set wifi.enabled 0
+        connman_clean_restart
         wait_for_ip down
+        ;;
+    "getkey")
+        ssid="$1"
+        # Check primary slot
+        if [ "$(settings_get wifi.ssid)" = "$ssid" ]; then
+            settings_get wifi.key
+            exit 0
+        fi
+        # Check numbered slots
+        n=2
+        while true; do
+            slot_ssid="$(settings_get wifi${n}.ssid)"
+            [ -z "$slot_ssid" ] && break
+            if [ "$slot_ssid" = "$ssid" ]; then
+                settings_get wifi${n}.key
+                exit 0
+            fi
+            n=$((n + 1))
+        done
+        ;;
+    "status")
+        # Return the SSID of the currently connected WiFi network
+        connmanctl services 2>/dev/null | awk '/^\*[A-Za-z].*wifi_/ {
+            line = $0
+            sub(/^\*[A-Za-z]+\s+/, "", line)
+            sub(/\s+wifi_[[:alnum:]_]+$/, "", line)
+            print line
+            exit
+        }'
+        ;;
+    "connect_netplay")
+        ssid="$1"
+        key="$2"
+        if [ -z "$ssid" ]; then
+            echo "FAILED"
+            exit 1
+        fi
+        # Save current SSID for later restoration
+        current_ssid=$(connmanctl services 2>/dev/null | awk '/^\*[A-Za-z].*wifi_/ {
+            line = $0
+            sub(/^\*[A-Za-z]+\s+/, "", line)
+            sub(/\s+wifi_[[:alnum:]_]+$/, "", line)
+            print line
+            exit
+        }')
+        if [ -n "$current_ssid" ]; then
+            echo "$current_ssid" > /tmp/.netplay_client_wifi_restore
+        fi
+        # Use existing enable flow (saves previous wifi to numbered slot, then connects)
+        save_previous_wifi "$ssid"
+        settings_set wifi.ssid "$ssid"
+        settings_set wifi.key "$key"
+        settings_set wifi.enabled 1
+        connman_clean_restart
+        wait_for_ip up
+        # Check if we got an IP
+        if ip -4 addr show | grep "inet " | grep -qv "127\.0\.0\.1"; then
+            echo "CONNECTED"
+        else
+            echo "FAILED"
+        fi
+        ;;
+    "restore")
+        # Restore previous WiFi connection after netplay
+        restore_file="/tmp/.netplay_client_wifi_restore"
+        if [ ! -f "$restore_file" ]; then
+            exit 0
+        fi
+        prev_ssid="$(cat "$restore_file")"
+        rm -f "$restore_file"
+        if [ -z "$prev_ssid" ]; then
+            exit 0
+        fi
+        # Look up the key from saved slots (saved by save_previous_wifi during connect_netplay)
+        prev_key="$($0 getkey "$prev_ssid")"
+        # Set wifi config directly (don't use enable to avoid saving NETPLAY_AP to a slot)
+        settings_set wifi.ssid "$prev_ssid"
+        settings_set wifi.key "$prev_key"
+        connman_clean_restart
+        wait_for_ip up
         ;;
     "get_route")
         get_route
@@ -108,6 +231,70 @@ case "${ACTION}" in
         ;;
     "has_ap_mode")
         has_ap_mode
+        ;;
+    "setup_hotspot")
+        # Set up a NETPLAY hotspot AP with hostapd + dnsmasq.
+        # Called from ES before game launch so the user sees a loading screen.
+        # The adhoc_hooks gameStart will detect the AP is already running and skip.
+        WIFI_DEV=$(get_interface)
+        if [ -z "$WIFI_DEV" ]; then
+            echo "FAILED"
+            exit 1
+        fi
+
+        SSID=$(settings_get wifi.adhoc.ssid)
+        KEY=$(settings_get wifi.adhoc.key)
+        KEY=${KEY:-12345678}
+
+        # Kill connman — both connmanctl disconnect and the init stop script
+        # can hang. We need the interface free for hostapd anyway.
+        # connman will be restarted by gameStop (batocera-wifi enable).
+        killall connmand 2>/dev/null
+        sleep 0.3
+        rm -rf /var/lib/connman/wifi_* 2>/dev/null
+
+        ip link set "$WIFI_DEV" up
+        ip addr flush dev "$WIFI_DEV"
+        sleep 0.1
+        ip addr add 192.168.4.1/24 dev "$WIFI_DEV"
+
+        cat > /tmp/hostapd.conf <<HEOF
+interface=$WIFI_DEV
+driver=nl80211
+ssid=$SSID
+channel=6
+hw_mode=g
+auth_algs=1
+wpa=2
+wpa_passphrase=$KEY
+wpa_key_mgmt=WPA-PSK
+rsn_pairwise=CCMP
+wmm_enabled=1
+beacon_int=50
+preamble=1
+HEOF
+
+        hostapd /tmp/hostapd.conf > /tmp/hostapd.log 2>&1 &
+        echo $! > /tmp/hostapd.pid
+
+        dnsmasq --interface="$WIFI_DEV" \
+                --bind-interfaces \
+                --dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,12h \
+                --dhcp-leasefile=/tmp/dnsmasq.leases \
+                --pid-file=/tmp/dnsmasq.pid \
+                --no-resolv 2>/dev/null
+
+        # Wait for AP mode to be active
+        for i in $(seq 1 100); do
+            if iw dev "$WIFI_DEV" info | grep -q "type AP"; then
+                break
+            fi
+            sleep 0.1
+        done
+
+        iw dev "$WIFI_DEV" set power_save off 2>/dev/null
+        touch /tmp/.adhoc_ap_enabled
+        echo "OK"
         ;;
     *)
         do_help

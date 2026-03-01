@@ -132,13 +132,19 @@ def createPPSSPPConfig(iniConfig, system):
     if system.isOptSet('texture_deposterize'):
         iniConfig.set("Graphics", "TexDeposterize", system.config["texture_deposterize"])
     else:
-        iniConfig.set("Graphics", "TexDeposterize", "True")
+        iniConfig.set("Graphics", "TexDeposterize", "False")
 
     # Anisotropic Filtering
     if system.isOptSet('anisotropic_filtering'):
         iniConfig.set("Graphics", "AnisotropyLevel", system.config["anisotropic_filtering"])
     else:
-        iniConfig.set("Graphics", "AnisotropyLevel", "3")
+        iniConfig.set("Graphics", "AnisotropyLevel", "0")
+
+    # Skip GPU Readbacks
+    if system.isOptSet('skip_gpu_readbacks'):
+        iniConfig.set("Graphics", "SkipGPUReadbackMode", system.config["skip_gpu_readbacks"])
+    else:
+        iniConfig.set("Graphics", "SkipGPUReadbackMode", "1")
     # Texture Filtering
     if system.isOptSet('texture_filtering'):
         iniConfig.set("Graphics", "TextureFiltering", system.config["texture_filtering"])

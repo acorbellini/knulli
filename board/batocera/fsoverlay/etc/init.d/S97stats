@@ -1,19 +1,4 @@
 #!/bin/sh
 
-if test "$1" != "start"
-then
-	  exit 0
-fi
-
-stats=$(/usr/bin/batocera-settings-get system.telemetry)
-if [ "$stats" = "0" ]; then
-	echo "Telemetry disabled"
-	exit 0
-fi
-
-echo "Collecting device stats"
-
-knulli-report-stats
-
-echo "Done"
-
+# Telemetry disabled in custom build
+exit 0

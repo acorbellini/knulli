@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Thu, 27 Feb 2026 00:00:00 +0000
+Subject: [PATCH] Makefile: disable gcc-wrapper.py warnings-as-errors
+
+The BSP kernel's gcc-wrapper.py treats all GCC warnings not in
+a small whitelist as fatal errors. Modern GCC (13.x+) produces
+many new warnings that trip this mechanism. Disable the wrapper
+so the kernel builds with standard warning behavior.
+
+---
+ Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+--- a/Makefile
++++ b/Makefile
+@@ -527,9 +527,9 @@
+ # warnings and causes the build to stop upon encountering them.
+ ifeq ($(CC),$(CROSS_COMPILE)gcc)
+-ifneq ($(wildcard $(srctree)/scripts/gcc-wrapper.py),)
+-CC		= $(abspath $(srctree)/scripts/gcc-wrapper.py) $(CROSS_COMPILE)gcc
+-endif
++#ifneq ($(wildcard $(srctree)/scripts/gcc-wrapper.py),)
++#CC		= $(abspath $(srctree)/scripts/gcc-wrapper.py) $(CROSS_COMPILE)gcc
++#endif
+ endif

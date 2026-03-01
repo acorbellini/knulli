@@ -87,6 +87,13 @@ case "${ACTION}" in
                             amixer -c 0 sset Headphone "$(batocera-settings-get audio.headphone || echo 0)"
                             LANG=C pactl set-default-sink "${MODE}" || exit 1
                             ;;
+                        "rk3568")
+                            # RK817 codec: force stereo profile and set speaker output
+                            LANG=C pactl set-card-profile alsa_card._sys_devices_platform_rk817-sound_sound_card0 "output:stereo-fallback+input:stereo-fallback" 2>/dev/null
+                            MODE=alsa_output._sys_devices_platform_rk817-sound_sound_card0.stereo-fallback
+                            amixer -c 0 cset name='Playback Path' SPK 2>/dev/null
+                            LANG=C pactl set-default-sink "${MODE}" || exit 1
+                            ;;
                         *)
                             # do nothing!
                             ;;
@@ -146,12 +153,14 @@ case "${ACTION}" in
                 if echo "${VOLUME}" | grep -qE '^[0-9]+$'; then
                     if [[ "${VOLUME}" -ge 0 && "${VOLUME}" -le "${MAX_VOLUME}" ]]; then
                         LANG=C pactl set-sink-volume @DEFAULT_SINK@ "${VOLUME}%" || exit 1
+                        /usr/bin/batocera-settings-set audio.volume "${VOLUME}"
                         exit 0
                     fi
                 elif echo "${VOLUME}" | grep -qE '^[+-][0-9]+$'; then
                     let NEW_VOLUME=${DETECT_VOLUME}${VOLUME}
                     NEW_VOLUME=$(( NEW_VOLUME < 0 ? 0 : (NEW_VOLUME > MAX_VOLUME ? MAX_VOLUME : NEW_VOLUME) ))
                     LANG=C pactl set-sink-volume @DEFAULT_SINK@ "${NEW_VOLUME}%" || exit 1
+                    /usr/bin/batocera-settings-set audio.volume "${NEW_VOLUME}"
                     exit 0
                 fi
                 echo "invalid volume value" >&2

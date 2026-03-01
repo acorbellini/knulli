@@ -8,7 +8,17 @@
 [ "$1" = "stop" ] || exit 0
 
 set --
-for key in wifi.enabled wifi.ssid wifi.key wifi2.ssid wifi2.key wifi3.ssid wifi3.key wifi.hidden.ssid wifi.hidden.key wifi.adhoc.ssid wifi.adhoc.key splash.screen.enabled system.timezone es.resolution system.hostname
+keys="wifi.enabled wifi.ssid wifi.key"
+n=2
+while true; do
+    ssid="$(/usr/bin/batocera-settings-get "wifi${n}.ssid")"
+    [ -z "$ssid" ] && break
+    keys="$keys wifi${n}.ssid wifi${n}.key"
+    n=$((n + 1))
+done
+keys="$keys wifi.hidden.ssid wifi.hidden.key wifi.adhoc.ssid wifi.adhoc.key"
+keys="$keys splash.screen.enabled system.timezone es.resolution system.hostname"
+for key in $keys
 do
     value="$(/usr/bin/batocera-settings-get "$key")" # in case it is empty, it must be set in the batocera-boot.conf file to erase any existing value
     if [ "$value" != "$(/usr/bin/batocera-settings-get -f /boot/batocera-boot.conf "$key")" ]

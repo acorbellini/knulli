@@ -1,0 +1,11 @@
+--- a/yabause/src/libretro/Makefile.common
++++ b/yabause/src/libretro/Makefile.common
+@@ -187,7 +187,8 @@
+ SOURCES_C += $(LIBRETRO_COMM_DIR)/glsm/glsm.c \
+ 	$(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
+-	$(CORE_DIR)/glsym_private.c
++	$(CORE_DIR)/glsym_private.c \
++	$(LIBRETRO_COMM_DIR)/string/stdstring.c
+ ifeq ($(FORCE_GLES), 1)
+ 	SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es3.c
+ else

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Migrate batocera.conf → knulli.conf (one-time).
+#
+# Older installations have settings in /userdata/system/batocera.conf.
+# Now ES, configgen, and batocera-settings-get/set all use knulli.conf.
+# On first boot after the update, migrate the old file if knulli.conf
+# doesn't exist yet (S12populateshare creates it from datainit on
+# fresh installs).
+
+CONF_DIR="/userdata/system"
+KNULLI_CONF="${CONF_DIR}/knulli.conf"
+BATOCERA_CONF="${CONF_DIR}/batocera.conf"
+
+case "$1" in
+    start)
+        if [ ! -f "$KNULLI_CONF" ] && [ -f "$BATOCERA_CONF" ]; then
+            cp "$BATOCERA_CONF" "$KNULLI_CONF"
+        fi
+        ;;
+    stop)
+        # Keep batocera.conf in sync for any third-party scripts that may read it
+        [ -f "$KNULLI_CONF" ] && cp "$KNULLI_CONF" "$BATOCERA_CONF"
+        ;;
+    *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+        ;;
+esac

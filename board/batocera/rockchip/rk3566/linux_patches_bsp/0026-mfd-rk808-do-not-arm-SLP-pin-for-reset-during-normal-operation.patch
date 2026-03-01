@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Wed, 05 Mar 2026 00:00:00 -0300
+Subject: [PATCH] mfd: rk808: do not arm SLP pin for reset during normal
+ operation
+
+rk817_pinctrl_init() selects the "pmic-reset" pinctrl state at the end
+of probe, and rk8xx_resume() re-selects it after every suspend/resume
+cycle. This keeps the RK817 SLP pin in function 3 (reset mode) during
+all normal operation, meaning a glitch on the SLP line triggers a full
+PMIC reset.
+
+On some boards (e.g. Miyoo Flip), plugging in a USB charger can induce
+enough electrical noise on the SLP line to momentarily trigger such a
+reset. The PMIC then powers back on from charger VBUS (ON_SOURCE=0x10),
+appearing to the user as a spontaneous reboot.
+
+Fix this by keeping the SLP pin in NULL function during normal operation
+(probe and resume). The suspend path already explicitly selects the
+sleep pinctrl state, and the shutdown path sets SLPPIN_DN_FUN. To
+ensure clean reboots still work (the SoC needs the PMIC to follow its
+reset), arm the SLP pin for reset mode in the reboot notifier, which
+runs just before the actual system restart.
+
+Signed-off-by: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+---
+ drivers/mfd/rk808.c | 16 +++++++---------
+ 1 file changed, 7 insertions(+), 9 deletions(-)
+
+--- a/drivers/mfd/rk808.c
++++ b/drivers/mfd/rk808.c
+@@ -1039,13 +1039,7 @@
+ 	if (IS_ERR(rk808->pins->reset)) {
+ 		rk808->pins->reset = NULL;
+ 		dev_dbg(dev, "no reset-setting pinctrl state\n");
+-		return 0;
+ 	}
+-
+-	ret = pinctrl_select_state(rk808->pins->p, rk808->pins->reset);
+-
+-	if (ret)
+-		dev_dbg(dev, "failed to activate reset-setting pinctrl state\n");
+
+ 	return 0;
+ }
+@@ -1095,6 +1089,13 @@
+ 			     value | 0xf0);
+ 	} else {
+ 		dev_info(dev, "reboot: not restore POWER_EN\n");
++	}
++
++	/* Arm SLP pin for reset so the PMIC follows the SoC restart */
++	if (data->rk808->pins && data->rk808->pins->p &&
++	    data->rk808->pins->reset) {
++		pinctrl_select_state(data->rk808->pins->p,
++				     data->rk808->pins->reset);
+ 	}
+
+ 	if (action != SYS_RESTART || !cmd)
+@@ -1555,9 +1556,6 @@
+ 			/* pmic need the SCL clock to synchronize register */
+ 			regmap_read(rk808->regmap, RK817_SYS_STS, &value);
+ 			mdelay(2);
+-			ret = pinctrl_select_state(rk808->pins->p, rk808->pins->reset);
+-			if (ret)
+-				dev_dbg(dev, "failed to act reset pinctrl state\n");
+ 		}
+ 		break;
+ 	default:

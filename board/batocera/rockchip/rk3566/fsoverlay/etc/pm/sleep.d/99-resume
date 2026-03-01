@@ -1,0 +1,130 @@
+#!/bin/sh
+#
+# Restore hardware state after suspend/resume on RK3566 (Miyoo Flip).
+#
+# Handles:
+# - Spurious charger wakeups (re-suspend if not power button)
+# - RK817 codec audio (regmap cache is stale after resume, so we
+#   write codec registers directly via I2C to bypass the cache)
+# - USB power/autosuspend (RTL8733BU WiFi adapter drops without this)
+# - WiFi reconnection (connman scan after USB re-enumeration)
+# - PipeWire sink unmute
+#
+
+PWRKEY_COUNT_FILE="/var/run/pwrkey-irq-count"
+
+get_pwrkey_count() {
+    awk '/rk805_pwrkey_fall/ {for(i=2;i<=NF;i++){if($i~/^[0-9]+$/){n+=$i}}; print n}' /proc/interrupts
+}
+
+case "$1" in
+    suspend|hibernate)
+        # Save power button IRQ count before suspending
+        get_pwrkey_count > "$PWRKEY_COUNT_FILE"
+        ;;
+    thaw|resume)
+        # Determine what caused the wakeup.
+        # Both power button and charger plug/unplug wake via IRQ 72 (rk817),
+        # so we compare the rk805_pwrkey_fall IRQ count to tell them apart.
+        RESUME_IRQ=$(dmesg | grep "Resume caused by" | tail -1)
+        case "$RESUME_IRQ" in
+            *"IRQ 71"*|*"hall"*)
+                # Hall sensor (lid opened) - proceed with normal resume
+                ;;
+            *"IRQ 72"*|*"rk817"*)
+                # RK817 PMIC wake - check if power button was pressed
+                OLD_COUNT=$(cat "$PWRKEY_COUNT_FILE" 2>/dev/null || echo 0)
+                NEW_COUNT=$(get_pwrkey_count)
+                if [ "$NEW_COUNT" = "$OLD_COUNT" ]; then
+                    # Power button was NOT pressed - charger event, re-suspend
+                    ( sleep 1 && pm-suspend ) &
+                    exit 0
+                fi
+                # Power button was pressed - proceed with normal resume
+                ;;
+        esac
+
+        # Wait for USB devices to re-enumerate after resume
+        sleep 1
+
+        # Restore RK817 codec after resume.
+        # The codec driver powers down all registers on suspend via
+        # rk817_codec_power_down(ALL). On resume, the regmap cache holds
+        # the power-down values and considers them in-sync with hardware,
+        # so amixer/snd_soc_component_write calls silently skip the I2C
+        # writes.  We first cycle the playback path via amixer to sync
+        # the driver's internal state, then overwrite the codec registers
+        # directly via I2C to bypass the stale regmap cache.
+        # RK817 codec is at I2C bus 0, address 0x20.
+        amixer -c 0 cset name='Playback Path' OFF > /dev/null 2>&1
+        amixer -c 0 cset name='Playback Path' SPK > /dev/null 2>&1
+        amixer -c 0 cset name='Speaker Switch' on > /dev/null 2>&1
+        pactl set-sink-mute @DEFAULT_SINK@ 0 > /dev/null 2>&1
+        i2cset -f -y 0 0x20 0x47 0x00 2>/dev/null  # APLL_CFG5: PLL on
+        i2cset -f -y 0 0x20 0x17 0x40 2>/dev/null  # AREF_RTCFG1: ref on
+        i2cset -f -y 0 0x20 0x15 0xaf 2>/dev/null  # DTOP_DIGEN_CLKE
+        i2cset -f -y 0 0x20 0x38 0x10 2>/dev/null  # DDAC_MUTE_MIXCTL
+        i2cset -f -y 0 0x20 0x40 0xa5 2>/dev/null  # ACLASSD_CFG1: enable
+        i2cset -f -y 0 0x20 0x41 0xf7 2>/dev/null  # ACLASSD_CFG2: restart
+
+        # Disable USB autosuspend globally
+        echo -1 > /sys/module/usbcore/parameters/autosuspend 2>/dev/null
+        for usbdev in /sys/bus/usb/devices/[0-9]*; do
+            [ -f "$usbdev/power/control" ] && echo on > "$usbdev/power/control" 2>/dev/null
+        done
+
+        # WiFi reconnect (backgrounded - connmanctl can block on D-Bus)
+        (
+            for i in $(seq 1 10); do
+                [ -d /sys/class/net/wlan0 ] && break
+                sleep 0.5
+            done
+            if [ -d /sys/class/net/wlan0 ]; then
+                # Restore WiFi MTU (RTL8733BU defaults to 4052 after reset)
+                ip link set wlan0 mtu 1500 2>/dev/null
+
+                # If a netplay hotspot was active, restart it instead of reconnecting as station
+                if [ -f /tmp/.adhoc_ap_enabled ]; then
+                    INTERFACE=wlan0
+                    SSID=$(batocera-settings-get wifi.adhoc.ssid)
+                    PASSPHRASE=$(batocera-settings-get wifi.adhoc.key)
+                    PASSPHRASE=${PASSPHRASE:-12345678}
+
+                    # Kill stale hostapd/dnsmasq from before suspend
+                    killall hostapd 2>/dev/null
+                    killall dnsmasq 2>/dev/null
+
+                    # Disconnect any station connections connman may have started
+                    connmanctl services 2>/dev/null | awk '/wifi_/ {print $NF}' | while read svc; do
+                        connmanctl disconnect "$svc" 2>/dev/null
+                    done
+
+                    ip addr flush dev "$INTERFACE"
+                    sleep 0.1
+                    ip addr add 192.168.4.1/24 dev "$INTERFACE"
+
+                    hostapd /tmp/hostapd.conf &
+                    echo $! > /tmp/hostapd.pid
+
+                    dnsmasq --interface="$INTERFACE" \
+                            --bind-interfaces \
+                            --dhcp-range=192.168.4.2,192.168.4.20,255.255.255.0,12h \
+                            --dhcp-leasefile=/tmp/dnsmasq.leases \
+                            --pid-file=/tmp/dnsmasq.pid \
+                            --no-resolv
+
+                    for i in $(seq 1 100); do
+                        iw dev "$INTERFACE" info | grep -q "type AP" && break
+                        sleep 0.1
+                    done
+                    iw dev "$INTERFACE" set power_save off 2>/dev/null
+                else
+                    # Normal station reconnect
+                    connmanctl scan wifi 2>/dev/null
+                fi
+            fi
+        ) &
+        ;;
+esac
+
+exit 0

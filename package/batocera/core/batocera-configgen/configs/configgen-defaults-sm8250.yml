@@ -1,5 +1,5 @@
 advision:
-  emulator: mame
+  emulator: libretro
   core:     mame
 flash:
   emulator: lightspark
@@ -8,7 +8,7 @@ fmtowns:
   emulator: libretro
   core:     mame
 lcdgames:
-  emulator: mame
+  emulator: libretro
   core:     mame
 n64:
   emulator: libretro
@@ -20,88 +20,88 @@ ps2:
   emulator: libretro
   core:     play
 plugnplay:
-  emulator: mame
+  emulator: libretro
   core:     mame
 pdp1:
-  emulator: mame
+  emulator: libretro
   core:     mame
 pv1000:
-  emulator: mame
+  emulator: libretro
   core:     mame
 gamate:
-  emulator: mame
+  emulator: libretro
   core:     mame
 crvision:
-  emulator: mame
+  emulator: libretro
   core:     mame
 gamecom:
-  emulator: mame
+  emulator: libretro
   core:     mame
 fm7:
-  emulator: mame
+  emulator: libretro
   core:     mame
 gamepock:
-  emulator: mame
+  emulator: libretro
   core:     mame
 apfm1000:
-  emulator: mame
+  emulator: libretro
   core:     mame
 bbc:
-  emulator: mame
+  emulator: libretro
   core:     mame
 adam:
-  emulator: mame
+  emulator: libretro
   core:     mame
 gmaster:
-  emulator: mame
+  emulator: libretro
   core:     mame
 astrocde:
-  emulator: mame
+  emulator: libretro
   core:     mame
 ti99:
-  emulator: mame
+  emulator: libretro
   core:     mame
 tutor:
-  emulator: mame
+  emulator: libretro
   core:     mame
 coco:
-  emulator: mame
+  emulator: libretro
   core:     mame
 archimedes:
-  emulator: mame
+  emulator: libretro
   core:     mame
 socrates:
-  emulator: mame
+  emulator: libretro
   core:     mame
 supracan:
-  emulator: mame
+  emulator: libretro
   core:     mame
 vsmile:
-  emulator: mame
+  emulator: libretro
   core:     mame
 xegs:
-  emulator: mame
+  emulator: libretro
   core:     mame
 atom:
-  emulator: mame
+  emulator: libretro
   core:     mame
 electron:
-  emulator: mame
+  emulator: libretro
   core:     mame
 camplynx:
-  emulator: mame
+  emulator: libretro
   core:     mame
 vgmplay:
-  emulator: mame
+  emulator: libretro
   core:     mame
 vc4000:
-  emulator: mame
+  emulator: libretro
   core:     mame
 gp32:
-  emulator: mame
+  emulator: libretro
   core:     mame
 laser310:
-  emulator: mame
+  emulator: libretro
   core:     mame
 cdi:
   emulator: libretro

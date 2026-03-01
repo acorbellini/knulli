@@ -1,0 +1,958 @@
+diff --git a/es-app/CMakeLists.txt b/es-app/CMakeLists.txt
+index 2c1b6eadc..8765ef17a 100644
+--- a/es-app/CMakeLists.txt
++++ b/es-app/CMakeLists.txt
+@@ -58,6 +58,7 @@ set(ES_HEADERS
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiThemeInstaller.h
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiBezelInstaller.h
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlay.h # batocera
++	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlayClientConnect.h
+ 	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlaySettings.h
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiRetroAchievements.h
+ 	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiRetroAchievementsSettings.h	
+@@ -180,6 +181,7 @@ set(ES_SOURCES
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiThemeInstaller.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiBezelInstaller.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlay.cpp # batocera
++	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlayClientConnect.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiNetPlaySettings.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiRetroAchievements.cpp
+ 	${CMAKE_CURRENT_SOURCE_DIR}/src/guis/GuiRetroAchievementsSettings.cpp
+diff --git a/es-app/src/ApiSystem.cpp b/es-app/src/ApiSystem.cpp
+index a3d93adea..9ad68283b 100644
+--- a/es-app/src/ApiSystem.cpp
++++ b/es-app/src/ApiSystem.cpp
+@@ -1306,6 +1306,7 @@ bool ApiSystem::unzipFile(const std::string fileName, const std::string destFold
+ 
+ static std::string BACKLIGHT_BRIGHTNESS_NAME;
+ static std::string BACKLIGHT_BRIGHTNESS_MAX_NAME;
++static bool USE_BATOCERA_BRIGHTNESS = false;
+ 
+ bool ApiSystem::getBrightness(int& value)
+ {
+@@ -1314,7 +1315,18 @@ bool ApiSystem::getBrightness(int& value)
+ 	#endif
+ 
+ 	if (BACKLIGHT_BRIGHTNESS_NAME == "notfound")
++	{
++		if (USE_BATOCERA_BRIGHTNESS)
++		{
++			auto result = executeEnumerationScript("batocera-brightness");
++			if (!result.empty())
++			{
++				value = Utils::String::toInteger(result[0]);
++				return true;
++			}
++		}
+ 		return false;
++	}
+ 
+ 	if (BACKLIGHT_BRIGHTNESS_NAME.empty() || BACKLIGHT_BRIGHTNESS_MAX_NAME.empty())
+ 	{
+@@ -1339,6 +1351,15 @@ bool ApiSystem::getBrightness(int& value)
+ 		LOG(LogInfo) << "ApiSystem::getBrightness > brightness path is not resolved";
+ 
+ 		BACKLIGHT_BRIGHTNESS_NAME = "notfound";
++
++		// Fall back to batocera-brightness if available
++		if (Utils::FileSystem::exists("/usr/bin/batocera-brightness"))
++		{
++			USE_BATOCERA_BRIGHTNESS = true;
++			LOG(LogInfo) << "ApiSystem::getBrightness > using batocera-brightness fallback";
++			return getBrightness(value);
++		}
++
+ 		return false;
+ 	}
+ 
+@@ -1361,15 +1382,21 @@ void ApiSystem::setBrightness(int value)
+ 	return;
+ #endif
+ 
+-	if (BACKLIGHT_BRIGHTNESS_NAME.empty() || BACKLIGHT_BRIGHTNESS_NAME == "notfound")
+-		return;
+-
+ 	if (value < 1)
+ 		value = 1;
+ 
+ 	if (value > 100)
+ 		value = 100;
+ 
++	if (USE_BATOCERA_BRIGHTNESS)
++	{
++		executeScript("batocera-brightness " + std::to_string(value));
++		return;
++	}
++
++	if (BACKLIGHT_BRIGHTNESS_NAME.empty() || BACKLIGHT_BRIGHTNESS_NAME == "notfound")
++		return;
++
+ 	int max = Utils::String::toInteger(Utils::FileSystem::readAllText(BACKLIGHT_BRIGHTNESS_MAX_NAME));
+ 	if (max == 0)
+ 		return;
+@@ -1595,6 +1622,36 @@ std::string ApiSystem::getWifiKey(const std::string& ssid)
+ 	return "";
+ }
+ 
++std::string ApiSystem::getWifiStatus()
++{
++	std::vector<std::string> result = executeEnumerationScript("knulli-wifi status");
++	if (!result.empty())
++		return result[0];
++	return "";
++}
++
++std::string ApiSystem::connectNetplayWifi(const std::string& ssid, const std::string& key)
++{
++	std::string cmd = "knulli-wifi connect_netplay \"" + ssid + "\" \"" + key + "\"";
++	std::vector<std::string> result = executeEnumerationScript(cmd);
++	if (!result.empty())
++		return result[0];
++	return "FAILED";
++}
++
++bool ApiSystem::restoreWifi()
++{
++	return executeScript("knulli-wifi restore");
++}
++
++bool ApiSystem::setupNetplayHotspot()
++{
++	std::vector<std::string> result = executeEnumerationScript("knulli-wifi setup_hotspot");
++	if (!result.empty() && result[0] == "OK")
++		return true;
++	return false;
++}
++
+ std::vector<std::string> ApiSystem::executeEnumerationScript(const std::string command)
+ {
+ 	LOG(LogDebug) << "ApiSystem::executeEnumerationScript -> " << command;
+diff --git a/es-app/src/ApiSystem.h b/es-app/src/ApiSystem.h
+index 66b432708..94e04c15a 100644
+--- a/es-app/src/ApiSystem.h
++++ b/es-app/src/ApiSystem.h
+@@ -266,6 +266,10 @@ public:
+ 	void scanWifiNetworks();
+ 	std::string getWifiRoute();
+ 	std::string getWifiKey(const std::string& ssid);
++	std::string getWifiStatus();
++	std::string connectNetplayWifi(const std::string& ssid, const std::string& key);
++	bool restoreWifi();
++	bool setupNetplayHotspot();
+ 
+ 	bool downloadFile(const std::string url, const std::string fileName, const std::string label = "", const std::function<void(const std::string)>& func = nullptr);
+ 	
+diff --git a/es-app/src/guis/GuiGameOptions.cpp b/es-app/src/guis/GuiGameOptions.cpp
+index d9ef87a46..138f8f58b 100644
+--- a/es-app/src/guis/GuiGameOptions.cpp
++++ b/es-app/src/guis/GuiGameOptions.cpp
+@@ -20,6 +20,8 @@
+ #include "guis/GuiMenu.h"
+ #include "ApiSystem.h"
+ #include "guis/GuiImageViewer.h"
++#include "guis/GuiNetPlayClientConnect.h"
++#include "guis/GuiLoading.h"
+ #include "views/SystemView.h"
+ #include "GuiGameAchievements.h"
+ #include "guis/GuiGameScraper.h"
+@@ -171,30 +173,78 @@ GuiGameOptions::GuiGameOptions(Window* window, FileData* game) : GuiComponent(wi
+ 			{
+ 				GuiSettings* msgBox = new GuiSettings(mWindow, _("NETPLAY"));
+ 				msgBox->setSubTitle(game->getName());
+-				msgBox->addGroup(_("START GAME"));
+ 
+-				msgBox->addEntry(_U("\uF144 ") + _("HOST A NETPLAY GAME"), false, [window, msgBox, game]
++				msgBox->addGroup(_("HOST"));
++
++				// Option 1: Host on current WiFi (regular LAN/internet)
++				msgBox->addEntry(_U("\uF144 ") + _("HOST ON CURRENT NETWORK"), false, [window, msgBox, game]
+ 				{
+-					if (ApiSystem::getInstance()->getIpAdress() == "NOT CONNECTED" && !SystemConf::getInstance()->getBool("global.netplay.hotspot"))
++					if (ApiSystem::getInstance()->getIpAdress() == "NOT CONNECTED")
+ 					{
+ 						window->pushGui(new GuiMsgBox(window, _("YOU ARE NOT CONNECTED TO A NETWORK"), _("OK"), nullptr));
+ 						return;
+ 					}
+ 
++					SystemConf::getInstance()->setBool("global.netplay", true);
++					SystemConf::getInstance()->setBool("global.netplay.hotspot", false);
++					SystemConf::getInstance()->saveSystemConf();
++
+ 					LaunchGameOptions options;
+ 					options.netPlayMode = SERVER;
+ 					ViewController::get()->launch(game, options);
+ 					msgBox->close();
+ 				});
+ 
++				// Option 2: Host with direct WiFi AP
++				if (ApiSystem::getInstance()->isWifiAPModeSupported())
++				{
++					msgBox->addEntry(_U("\uF012 ") + _("HOST WITH DIRECT WI-FI"), false, [window, msgBox, game]
++					{
++						SystemConf::getInstance()->setBool("global.netplay", true);
++						SystemConf::getInstance()->setBool("global.netplay.hotspot", true);
++						SystemConf::getInstance()->setBool("global.netplay_public_announce", false);
++						SystemConf::getInstance()->saveSystemConf();
++						system("touch /tmp/.netplay_hotspot_requested");
++
++						window->pushGui(new GuiLoading<bool>(window,
++							_("SETTING UP HOTSPOT NETWORK..."),
++							[](auto gui)
++							{
++								return ApiSystem::getInstance()->setupNetplayHotspot();
++							},
++							[window, game, msgBox](bool ok)
++							{
++								if (!ok)
++								{
++									window->pushGui(new GuiMsgBox(window,
++										_("FAILED TO SET UP HOTSPOT NETWORK"),
++										_("OK"), nullptr));
++									return;
++								}
++
++								LaunchGameOptions options;
++								options.netPlayMode = SERVER;
++								ViewController::get()->launch(game, options);
++								msgBox->close();
++							}));
++					});
++				}
++
++				msgBox->addGroup(_("JOIN"));
++
++				msgBox->addEntry(_U("\uF090 ") + _("JOIN DIRECT NETPLAY"), false, [window, game, msgBox]
++				{
++					window->pushGui(new GuiNetPlayClientConnect(window, game, msgBox));
++				});
++
+ 				msgBox->addGroup(_("OPTIONS"));
+ 
+-				// pubic announce
++				// public announce
+ 				auto public_announce = std::make_shared<SwitchComponent>(mWindow);
+ 				public_announce->setState(SystemConf::getInstance()->getBool("global.netplay_public_announce"));
+ 				msgBox->addWithLabel(_("PUBLICLY ANNOUNCE GAME"), public_announce);
+ 				msgBox->addSaveFunc([public_announce] { SystemConf::getInstance()->setBool("global.netplay_public_announce", public_announce->getState()); });
+-						
++
+ 				// passwords
+ 				msgBox->addInputTextRow(_("PLAYER PASSWORD"), "global.netplay.password", false);
+ 				msgBox->addInputTextRow(_("VIEWER PASSWORD"), "global.netplay.spectatepassword", false);
+diff --git a/es-app/src/guis/GuiNetPlayClientConnect.cpp b/es-app/src/guis/GuiNetPlayClientConnect.cpp
+new file mode 100644
+index 000000000..813db9c14
+--- /dev/null
++++ b/es-app/src/guis/GuiNetPlayClientConnect.cpp
+@@ -0,0 +1,627 @@
++#include "GuiNetPlayClientConnect.h"
++#include "FileData.h"
++#include "SystemData.h"
++#include "ApiSystem.h"
++#include "SystemConf.h"
++#include "LocaleES.h"
++#include "views/ViewController.h"
++#include "guis/GuiSettings.h"
++#include "guis/GuiMsgBox.h"
++#include "guis/GuiLoading.h"
++#include "guis/GuiWifi.h"
++#include "components/SwitchComponent.h"
++#include "Log.h"
++
++#include <sys/socket.h>
++#include <netinet/in.h>
++#include <arpa/inet.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <cstring>
++
++#define NETPLAY_AP_SSID "NETPLAY_AP"
++#define NETPLAY_AP_KEY  "12345678"
++#define NETPLAY_DEFAULT_PORT 55435
++#define DISCOVERY_TIMEOUT_MS 10000
++
++GuiNetPlayClientConnect::GuiNetPlayClientConnect(Window* window, FileData* game, GuiSettings* parentMenu)
++	: GuiComponent(window), mBusyAnim(window)
++{
++	mGame = game;
++	mParentMenu = parentMenu;
++	mState = CHECKING_WIFI;
++	mShowBusy = true;
++	mWifiThread = nullptr;
++	mWifiThreadRunning = false;
++	mLanSocket = -1;
++	mDiscoveryTimeout = 0;
++	mHostFound = false;
++	mHostPort = NETPLAY_DEFAULT_PORT;
++	mHostHasPassword = false;
++	mClosingSettings = false;
++	mCancelled = false;
++
++	setSize((float)Renderer::getScreenWidth(), (float)Renderer::getScreenHeight());
++
++	mBusyAnim.setSize(mSize);
++	mBusyAnim.setText(_("CHECKING WI-FI..."));
++
++	// Start WiFi check in background
++	checkWifi();
++}
++
++GuiNetPlayClientConnect::~GuiNetPlayClientConnect()
++{
++	if (mWifiThread)
++	{
++		mWifiThreadRunning = false;
++		mWifiThread->join();
++		delete mWifiThread;
++	}
++
++	if (mLanSocket >= 0)
++		::close(mLanSocket);
++}
++
++void GuiNetPlayClientConnect::setBusy(const std::string& text)
++{
++	mShowBusy = true;
++	mBusyAnim.setText(text);
++	mBusyAnim.setSize(mSize);
++}
++
++void GuiNetPlayClientConnect::checkWifi()
++{
++	mState = CHECKING_WIFI;
++	setBusy(_("SCANNING WI-FI NETWORKS..."));
++
++	// Clean up old thread if any
++	if (mWifiThread)
++	{
++		if (mWifiThread->joinable())
++			mWifiThread->join();
++		delete mWifiThread;
++		mWifiThread = nullptr;
++	}
++
++	mWifiThreadRunning = true;
++	mWifiThread = new std::thread([this]()
++	{
++		std::string currentSsid = ApiSystem::getInstance()->getWifiStatus();
++
++		// Look up stored key for current network (uses batocera-settings-get, more robust than SystemConf)
++		std::string currentKey;
++		if (!currentSsid.empty())
++			currentKey = ApiSystem::getInstance()->getWifiKey(currentSsid);
++
++		// Scan for networks and look for NETPLAY SSIDs
++		std::vector<std::string> networks = ApiSystem::getInstance()->getWifiNetworks(true);
++		std::string netplaySsid;
++		for (auto& net : networks)
++		{
++			if (net.find("NETPLAY") != std::string::npos)
++			{
++				netplaySsid = net;
++				break;
++			}
++		}
++
++		// Post results to UI thread
++		Window* window = mWindow;
++		window->postToUiThread([this, currentSsid, currentKey, netplaySsid]()
++		{
++			mWifiThreadRunning = false;
++			if (mCancelled) { delete this; return; }
++			showWifiOptions(currentSsid, netplaySsid, currentKey);
++		});
++	});
++}
++
++void GuiNetPlayClientConnect::showWifiOptions(const std::string& currentSsid, const std::string& netplaySsid,
++	const std::string& wifiKey, bool skipPrePopulate)
++{
++	mState = WIFI_OPTIONS;
++	mShowBusy = false;
++
++	mClosingSettings = false;
++	auto* settings = new GuiSettings(mWindow, _("JOIN DIRECT NETPLAY"));
++	settings->setSubTitle(mGame->getName());
++	settings->setCloseButton("back");
++	settings->onFinalize([this]() { if (!mClosingSettings) delete this; });
++
++	settings->addGroup(_("WI-FI CONNECTION"));
++
++	bool isConnected = !currentSsid.empty();
++
++	// Pre-populate SSID and key (only on first show, not after picker re-shows)
++	if (!skipPrePopulate)
++	{
++		if (isConnected)
++		{
++			SystemConf::getInstance()->set("netplay.client.wifi_ssid", currentSsid);
++			if (currentSsid == NETPLAY_AP_SSID)
++				SystemConf::getInstance()->set("netplay.client.wifi_key", NETPLAY_AP_KEY);
++			else
++				SystemConf::getInstance()->set("netplay.client.wifi_key", wifiKey);
++		}
++		else if (!netplaySsid.empty())
++		{
++			// Not connected but NETPLAY SSID found — pre-populate with it
++			SystemConf::getInstance()->set("netplay.client.wifi_ssid", netplaySsid);
++			SystemConf::getInstance()->set("netplay.client.wifi_key", NETPLAY_AP_KEY);
++		}
++		else
++		{
++			SystemConf::getInstance()->set("netplay.client.wifi_ssid", "");
++			SystemConf::getInstance()->set("netplay.client.wifi_key", "");
++		}
++	}
++
++	// "USE NETPLAY_AP" shortcut — shown when NETPLAY SSID was found AND user is already connected
++	// (offers to switch from current network to the NETPLAY AP)
++	if (!netplaySsid.empty() && isConnected && currentSsid != netplaySsid)
++	{
++		settings->addEntry(_U("\uF0C1 ") + _("USE") + " " + netplaySsid, false, [this, settings, netplaySsid, currentSsid, wifiKey]
++		{
++			SystemConf::getInstance()->set("netplay.client.wifi_ssid", netplaySsid);
++			SystemConf::getInstance()->set("netplay.client.wifi_key", NETPLAY_AP_KEY);
++			mClosingSettings = true;
++			Window* w = mWindow;
++			auto* s = settings;
++			std::string nSsid = netplaySsid;
++			std::string cSsid = currentSsid;
++			std::string cKey = wifiKey;
++			w->postToUiThread([this, s, cSsid, nSsid, cKey]()
++			{
++				s->close();
++				showWifiOptions(cSsid, nSsid, cKey, true);
++			});
++		});
++	}
++
++	// WiFi SSID picker — after picking, close and re-show so key field refreshes
++	auto openWifiPicker = [this, settings, currentSsid, netplaySsid](Window* win, std::string title, std::string data,
++		const std::function<void(std::string)>& onsave)
++	{
++		auto wrappedSave = [this, settings, onsave, currentSsid, netplaySsid](const std::string& ssid)
++		{
++			onsave(ssid);
++			// Look up stored key for the picked network
++			std::string pickedKey;
++			if (ssid.find("NETPLAY") != std::string::npos)
++				pickedKey = NETPLAY_AP_KEY;
++			else
++				pickedKey = ApiSystem::getInstance()->getWifiKey(ssid);
++			SystemConf::getInstance()->set("netplay.client.wifi_key", pickedKey);
++			// Re-show wifi options so the key field picks up the new value
++			mClosingSettings = true;
++			Window* w = mWindow;
++			auto* s = settings;
++			std::string cSsid = currentSsid;
++			std::string nSsid = netplaySsid;
++			std::string pKey = pickedKey;
++			w->postToUiThread([this, s, cSsid, nSsid, pKey]()
++			{
++				s->close();
++				showWifiOptions(cSsid, nSsid, pKey, true);
++			});
++		};
++		win->pushGui(new GuiWifi(win, title, data, wrappedSave));
++	};
++
++	settings->addInputTextRow(_("WIFI SSID"), "netplay.client.wifi_ssid", false, false, openWifiPicker);
++	settings->addInputTextRow(_("WIFI KEY"), "netplay.client.wifi_key", true);
++
++	// IP address (read-only display)
++	std::string ip = ApiSystem::getInstance()->getIpAdress();
++	settings->addWithDescription(_("IP ADDRESS"), ip, nullptr, nullptr);
++
++	settings->addGroup(_("ACTIONS"));
++
++	// Single action: connect (if needed) and find host
++	std::string savedCurrentSsid = currentSsid;
++	settings->addEntry(_U("\uF0C1 ") + _("CONNECT AND FIND HOST"), false, [this, settings, savedCurrentSsid]
++	{
++		std::string ssid = SystemConf::getInstance()->get("netplay.client.wifi_ssid");
++		std::string key = SystemConf::getInstance()->get("netplay.client.wifi_key");
++
++		if (ssid.empty())
++		{
++			mWindow->pushGui(new GuiMsgBox(mWindow, _("PLEASE SELECT A WI-FI NETWORK"), _("OK"), nullptr));
++			return;
++		}
++
++		mClosingSettings = true;
++		Window* w = mWindow;
++		auto* s = settings;
++		w->postToUiThread([s]() { s->close(); });
++		connectAndFindHost(ssid, key, savedCurrentSsid);
++	});
++
++	mWindow->pushGui(settings);
++}
++
++void GuiNetPlayClientConnect::connectAndFindHost(const std::string& selectedSsid, const std::string& key, const std::string& currentSsid)
++{
++	// If already connected to the selected SSID AND we have an IP, skip WiFi connect
++	if (!currentSsid.empty() && selectedSsid == currentSsid)
++	{
++		std::string ip = ApiSystem::getInstance()->getIpAdress();
++		if (!ip.empty() && ip != "NOT CONNECTED")
++		{
++			startDiscovery();
++			return;
++		}
++		// Connected but no IP — reconnect
++	}
++
++	// Connect (or reconnect) to the selected network
++	connectToWifi(selectedSsid, key);
++}
++
++void GuiNetPlayClientConnect::connectToWifi(const std::string& ssid, const std::string& key)
++{
++	mState = CONNECTING;
++	setBusy(_("CONNECTING TO ") + ssid + "...");
++
++	// Clean up old thread if any
++	if (mWifiThread)
++	{
++		if (mWifiThread->joinable())
++			mWifiThread->join();
++		delete mWifiThread;
++		mWifiThread = nullptr;
++	}
++
++	mWifiThreadRunning = true;
++	std::string connectSsid = ssid;
++	std::string connectKey = key;
++
++	mWifiThread = new std::thread([this, connectSsid, connectKey]()
++	{
++		// Save current SSID for later restoration (same as connect_netplay does)
++		std::string currentSsid = ApiSystem::getInstance()->getWifiStatus();
++		if (!currentSsid.empty())
++		{
++			FILE* f = fopen("/tmp/.netplay_client_wifi_restore", "w");
++			if (f) { fprintf(f, "%s", currentSsid.c_str()); fclose(f); }
++		}
++
++		// Use enableWifi — the same path as the regular NETWORK SETTINGS menu
++		bool ok = ApiSystem::getInstance()->enableWifi(connectSsid, connectKey);
++
++		// Check if we actually got an IP (WiFi may connect but DHCP can fail)
++		std::string ip;
++		if (ok)
++			ip = ApiSystem::getInstance()->getIpAdress();
++		bool hasIp = ok && !ip.empty() && ip != "NOT CONNECTED";
++
++		Window* window = mWindow;
++		window->postToUiThread([this, ok, hasIp]()
++		{
++			mWifiThreadRunning = false;
++			if (mCancelled) { delete this; return; }
++			if (hasIp)
++			{
++				startDiscovery();
++			}
++			else
++			{
++				mShowBusy = false;
++				mWindow->pushGui(new GuiMsgBox(mWindow,
++					ok ? _("CONNECTED BUT NO IP ADDRESS ASSIGNED. TRY AGAIN.") : _("FAILED TO CONNECT TO WI-FI"),
++					_("RETRY"), [this]() { checkWifi(); },
++					_("CANCEL"), [this]() { delete this; }));
++			}
++		});
++	});
++}
++
++void GuiNetPlayClientConnect::startDiscovery()
++{
++	mState = DISCOVERING;
++	setBusy(_("LOOKING FOR HOST..."));
++	mDiscoveryTimeout = 0;
++	mHostFound = false;
++
++	// Close old socket if any
++	if (mLanSocket >= 0)
++		::close(mLanSocket);
++
++	int port = Utils::String::toInteger(SystemConf::getInstance()->get("global.netplay.port"));
++	if (port <= 0)
++		port = NETPLAY_DEFAULT_PORT;
++
++	mLanSocket = socket(AF_INET, SOCK_DGRAM, 0);
++	if (mLanSocket < 0)
++	{
++		LOG(LogError) << "GuiNetPlayClientConnect: Failed to create UDP socket";
++		showServerNotFound();
++		return;
++	}
++
++	int broadcastEnable = 1;
++	setsockopt(mLanSocket, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable));
++
++	int flags = fcntl(mLanSocket, F_GETFL, 0);
++	fcntl(mLanSocket, F_SETFL, flags | O_NONBLOCK);
++
++	// Send discovery query
++	uint32_t query_magic = htonl(DISCOVERY_QUERY_MAGIC);
++
++	struct sockaddr_in broadcastAddr;
++	memset(&broadcastAddr, 0, sizeof(broadcastAddr));
++	broadcastAddr.sin_family = AF_INET;
++	broadcastAddr.sin_port = htons(port);
++	broadcastAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
++	sendto(mLanSocket, &query_magic, sizeof(query_magic), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
++
++	// Also send directly to 192.168.4.1 (AP default)
++	broadcastAddr.sin_addr.s_addr = inet_addr("192.168.4.1");
++	sendto(mLanSocket, &query_magic, sizeof(query_magic), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
++}
++
++void GuiNetPlayClientConnect::showServerFound(const std::string& hostIp, int hostPort, bool hasPassword, const std::string& hostNick)
++{
++	mState = SERVER_SETTINGS;
++	mShowBusy = false;
++
++	if (mLanSocket >= 0)
++	{
++		::close(mLanSocket);
++		mLanSocket = -1;
++	}
++
++	mClosingSettings = false;
++	auto* settings = new GuiSettings(mWindow, _("JOIN DIRECT NETPLAY"));
++	settings->setSubTitle(mGame->getName());
++	settings->setCloseButton("back");
++	settings->onFinalize([this]() { if (!mClosingSettings) checkWifi(); });
++
++	settings->addGroup(_("HOST FOUND"));
++
++	if (!hostNick.empty())
++		settings->addWithDescription(_("HOST"), hostNick, nullptr, nullptr);
++
++	SystemConf::getInstance()->set("netplay.client.host_ip", hostIp);
++	SystemConf::getInstance()->set("netplay.client.host_port", std::to_string(hostPort));
++
++	settings->addInputTextRow(_("HOST IP"), "netplay.client.host_ip", false);
++	settings->addInputTextRow(_("PORT"), "netplay.client.host_port", false);
++
++	if (hasPassword)
++		settings->addWithDescription(_("PASSWORD REQUIRED"), "", nullptr, nullptr);
++
++	settings->addInputTextRow(_("PASSWORD"), "netplay.client.password", true);
++
++	settings->addGroup(_("ACTIONS"));
++
++	settings->addEntry(_U("\uF144 ") + _("LAUNCH GAME"), false, [this, settings]
++	{
++		if (mState == LAUNCHING) return;
++
++		std::string ip = SystemConf::getInstance()->get("netplay.client.host_ip");
++		std::string portStr = SystemConf::getInstance()->get("netplay.client.host_port");
++		std::string password = SystemConf::getInstance()->get("netplay.client.password");
++
++		int port = Utils::String::toInteger(portStr);
++		if (port <= 0)
++			port = NETPLAY_DEFAULT_PORT;
++
++		if (ip.empty())
++		{
++			mWindow->pushGui(new GuiMsgBox(mWindow, _("PLEASE ENTER A HOST IP"), _("OK"), nullptr));
++			return;
++		}
++
++		mState = LAUNCHING;
++		mClosingSettings = true;
++		Window* w = mWindow;
++		auto* s = settings;
++		std::string launchIp = ip;
++		int launchPort = port;
++		std::string launchPassword = password;
++		w->postToUiThread([this, s, launchIp, launchPort, launchPassword]()
++		{
++			s->close();
++			launchGame(launchIp, launchPort, launchPassword);
++		});
++	});
++
++	settings->addEntry(_U("\uF002 ") + _("SEARCH AGAIN"), false, [this, settings]
++	{
++		mClosingSettings = true;
++		Window* w = mWindow;
++		auto* s = settings;
++		w->postToUiThread([s]() { s->close(); });
++		startDiscovery();
++	});
++
++	mWindow->pushGui(settings);
++}
++
++void GuiNetPlayClientConnect::showServerNotFound()
++{
++	mState = SERVER_SETTINGS;
++	mShowBusy = false;
++
++	if (mLanSocket >= 0)
++	{
++		::close(mLanSocket);
++		mLanSocket = -1;
++	}
++
++	int defaultPort = Utils::String::toInteger(SystemConf::getInstance()->get("global.netplay.port"));
++	if (defaultPort <= 0)
++		defaultPort = NETPLAY_DEFAULT_PORT;
++
++	mClosingSettings = false;
++	auto* settings = new GuiSettings(mWindow, _("JOIN DIRECT NETPLAY"));
++	settings->setSubTitle(mGame->getName());
++	settings->setCloseButton("back");
++	settings->onFinalize([this]() { if (!mClosingSettings) checkWifi(); });
++
++	settings->addGroup(_("HOST NOT FOUND"));
++	settings->addWithDescription(_("NO HOST WAS FOUND"), _("MAKE SURE THE HOST HAS STARTED THE GAME"), nullptr, nullptr);
++
++	settings->addEntry(_U("\uF002 ") + _("SEARCH AGAIN"), false, [this, settings]
++	{
++		mClosingSettings = true;
++		Window* w = mWindow;
++		auto* s = settings;
++		w->postToUiThread([s]() { s->close(); });
++		startDiscovery();
++	});
++
++	settings->addGroup(_("MANUAL CONNECTION"));
++
++	SystemConf::getInstance()->set("netplay.client.host_port", std::to_string(defaultPort));
++
++	settings->addInputTextRow(_("HOST IP"), "netplay.client.host_ip", false);
++	settings->addInputTextRow(_("PORT"), "netplay.client.host_port", false);
++	settings->addInputTextRow(_("PASSWORD"), "netplay.client.password", true);
++
++	settings->addEntry(_U("\uF144 ") + _("LAUNCH GAME"), false, [this, settings]
++	{
++		if (mState == LAUNCHING) return;
++
++		std::string ip = SystemConf::getInstance()->get("netplay.client.host_ip");
++		std::string portStr = SystemConf::getInstance()->get("netplay.client.host_port");
++		std::string password = SystemConf::getInstance()->get("netplay.client.password");
++
++		int port = Utils::String::toInteger(portStr);
++		if (port <= 0)
++			port = NETPLAY_DEFAULT_PORT;
++
++		if (ip.empty())
++		{
++			mWindow->pushGui(new GuiMsgBox(mWindow, _("PLEASE ENTER A HOST IP"), _("OK"), nullptr));
++			return;
++		}
++
++		mState = LAUNCHING;
++		mClosingSettings = true;
++		Window* w = mWindow;
++		auto* s = settings;
++		std::string launchIp = ip;
++		int launchPort = port;
++		std::string launchPassword = password;
++		w->postToUiThread([this, s, launchIp, launchPort, launchPassword]()
++		{
++			s->close();
++			launchGame(launchIp, launchPort, launchPassword);
++		});
++	});
++
++	mWindow->pushGui(settings);
++}
++
++void GuiNetPlayClientConnect::launchGame(const std::string& ip, int port, const std::string& password)
++{
++	SystemConf::getInstance()->setBool("global.netplay", true);
++	SystemConf::getInstance()->saveSystemConf();
++
++	LaunchGameOptions options;
++	options.netPlayMode = CLIENT;
++	options.ip = ip;
++	options.port = port;
++
++	if (!password.empty())
++		SystemConf::getInstance()->set("global.netplay.password", password);
++
++	ViewController::get()->launch(mGame, options);
++	if (mParentMenu)
++		mParentMenu->close();
++	delete this;
++}
++
++void GuiNetPlayClientConnect::update(int deltaTime)
++{
++	GuiComponent::update(deltaTime);
++
++	if (mShowBusy)
++		mBusyAnim.update(deltaTime);
++
++	// Handle LAN discovery responses
++	if (mState == DISCOVERING && mLanSocket >= 0)
++	{
++		struct sockaddr_in serverAddr;
++		socklen_t addrLen = sizeof(serverAddr);
++		ad_packet response;
++
++		ssize_t received = recvfrom(mLanSocket, &response, sizeof(response), 0,
++			(struct sockaddr*)&serverAddr, &addrLen);
++
++		if (received == sizeof(response) && ntohl(response.header) == DISCOVERY_RESPONSE_MAGIC)
++		{
++			mHostFound = true;
++			mHostIp = inet_ntoa(serverAddr.sin_addr);
++			mHostPort = ntohl(response.port);
++			mHostHasPassword = ntohl(response.has_password) != 0;
++			mHostNick = response.nick;
++
++			LOG(LogInfo) << "GuiNetPlayClientConnect: Found host at " << mHostIp << ":" << mHostPort;
++			showServerFound(mHostIp, mHostPort, mHostHasPassword, mHostNick);
++			return;
++		}
++
++		mDiscoveryTimeout += deltaTime;
++
++		// Re-send discovery query every 2 seconds
++		if (mDiscoveryTimeout % 2000 < deltaTime)
++		{
++			int port = Utils::String::toInteger(SystemConf::getInstance()->get("global.netplay.port"));
++			if (port <= 0)
++				port = NETPLAY_DEFAULT_PORT;
++
++			uint32_t query_magic = htonl(DISCOVERY_QUERY_MAGIC);
++
++			struct sockaddr_in broadcastAddr;
++			memset(&broadcastAddr, 0, sizeof(broadcastAddr));
++			broadcastAddr.sin_family = AF_INET;
++			broadcastAddr.sin_port = htons(port);
++			broadcastAddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
++			sendto(mLanSocket, &query_magic, sizeof(query_magic), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
++
++			broadcastAddr.sin_addr.s_addr = inet_addr("192.168.4.1");
++			sendto(mLanSocket, &query_magic, sizeof(query_magic), 0, (struct sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
++		}
++
++		if (mDiscoveryTimeout >= DISCOVERY_TIMEOUT_MS)
++		{
++			LOG(LogWarning) << "GuiNetPlayClientConnect: Discovery timeout";
++			showServerNotFound();
++		}
++	}
++}
++
++void GuiNetPlayClientConnect::render(const Transform4x4f& parentTrans)
++{
++	Transform4x4f trans = parentTrans * getTransform();
++
++	if (mShowBusy)
++	{
++		Renderer::setMatrix(trans);
++		mBusyAnim.render(trans);
++	}
++
++	renderChildren(trans);
++}
++
++bool GuiNetPlayClientConnect::input(InputConfig* config, Input input)
++{
++	if (input.value != 0 && config->isMappedTo(BUTTON_BACK, input))
++	{
++		if (mWifiThreadRunning)
++		{
++			// Thread is running — can't delete now or the queued lambda will crash.
++			// Set cancelled flag; the thread callback will handle cleanup.
++			mCancelled = true;
++			return true;
++		}
++		delete this;
++		return true;
++	}
++
++	return GuiComponent::input(config, input);
++}
+diff --git a/es-app/src/guis/GuiNetPlayClientConnect.h b/es-app/src/guis/GuiNetPlayClientConnect.h
+new file mode 100644
+index 000000000..a0ca94629
+--- /dev/null
++++ b/es-app/src/guis/GuiNetPlayClientConnect.h
+@@ -0,0 +1,78 @@
++#pragma once
++
++#include "GuiComponent.h"
++#include "components/BusyComponent.h"
++#include "components/NinePatchComponent.h"
++#include "components/ComponentGrid.h"
++#include "components/TextComponent.h"
++#include "guis/GuiNetPlay.h"
++#include <string>
++#include <thread>
++#include <mutex>
++#include <atomic>
++
++class FileData;
++class GuiSettings;
++
++class GuiNetPlayClientConnect : public GuiComponent
++{
++public:
++	GuiNetPlayClientConnect(Window* window, FileData* game, GuiSettings* parentMenu = nullptr);
++	~GuiNetPlayClientConnect();
++
++	void update(int deltaTime) override;
++	void render(const Transform4x4f& parentTrans) override;
++	bool input(InputConfig* config, Input input) override;
++
++private:
++	enum State
++	{
++		CHECKING_WIFI,
++		WIFI_OPTIONS,
++		CONNECTING,
++		DISCOVERING,
++		SERVER_SETTINGS,
++		LAUNCHING,
++		DONE
++	};
++
++	void checkWifi();
++	void showWifiOptions(const std::string& currentSsid, const std::string& netplaySsid,
++		const std::string& wifiKey, bool skipPrePopulate = false);
++	void connectAndFindHost(const std::string& selectedSsid, const std::string& key, const std::string& currentSsid);
++	void connectToWifi(const std::string& ssid, const std::string& key);
++	void startDiscovery();
++	void showServerFound(const std::string& hostIp, int hostPort, bool hasPassword, const std::string& hostNick);
++	void showServerNotFound();
++	void launchGame(const std::string& ip, int port, const std::string& password);
++
++	void setBusy(const std::string& text);
++
++	FileData* mGame;
++	GuiSettings* mParentMenu;
++	State mState;
++
++	BusyComponent mBusyAnim;
++	bool mShowBusy;
++
++	// WiFi connection thread
++	std::thread* mWifiThread;
++	std::atomic<bool> mWifiThreadRunning;
++	std::string mWifiResult;
++	std::mutex mWifiMutex;
++
++	// Track whether we're programmatically closing a GuiSettings (vs user pressing BACK)
++	bool mClosingSettings;
++
++	// Set when user presses BACK during a background operation; thread callback handles cleanup
++	std::atomic<bool> mCancelled;
++
++	// LAN discovery
++	int mLanSocket;
++	int mDiscoveryTimeout;
++	bool mHostFound;
++	std::string mHostIp;
++	int mHostPort;
++	bool mHostHasPassword;
++	std::string mHostNick;
++};

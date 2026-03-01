@@ -30,3 +30,4 @@ package/knulli/knulli-emulationstation/keys.txt
 *.po~
 batocera-mok.key
 .project
+gammaloader/

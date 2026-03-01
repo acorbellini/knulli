@@ -28,7 +28,7 @@ CACHE: Final = HOME / 'cache'
 ROMS: Final = USERDATA / 'roms'
 CHEATS: Final = USERDATA / 'cheats'
 LOGS: Final = HOME / 'logs'
-BATOCERA_CONF: Final = HOME / 'batocera.conf'
+BATOCERA_CONF: Final = HOME / 'knulli.conf'
 
 USER_ES_DIR: Final = CONFIGS / 'emulationstation'
 BATOCERA_ES_DIR: Final = Path('/usr/share/emulationstation')

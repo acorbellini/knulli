@@ -72,10 +72,13 @@ initialize_settings() {
         /usr/bin/batocera-settings-set system.batterysaver.mode "$MODE"
     fi
 
-    TIMER="$(/usr/bin/batocera-settings-get system.batterysaver.timer)"
+    # ES writes to system.idlewatcher.timer; fall back to system.batterysaver.timer
+    TIMER="$(/usr/bin/batocera-settings-get system.idlewatcher.timer)"
+    if [[ -z "$TIMER" || ! "$TIMER" =~ ^[0-9]+$ || "$TIMER" -lt 60 ]]; then
+        TIMER="$(/usr/bin/batocera-settings-get system.batterysaver.timer)"
+    fi
     if [[ -z "$TIMER" || ! "$TIMER" =~ ^[0-9]+$ || "$TIMER" -lt 60 ]]; then
         TIMER="300" # default in seconds
-        /usr/bin/batocera-settings-set system.batterysaver.timer "$TIMER"
     fi
 
     EXTENDED_MODE="$(/usr/bin/batocera-settings-get system.batterysaver.extendedmode)"
@@ -84,10 +87,13 @@ initialize_settings() {
         /usr/bin/batocera-settings-set system.batterysaver.extendedmode "$EXTENDED_MODE"
     fi
 
-    EXTENDED_TIMER="$(/usr/bin/batocera-settings-get system.batterysaver.extendedtimer)"
+    # ES writes to system.idlewatcher.extendedtimer; fall back to system.batterysaver.extendedtimer
+    EXTENDED_TIMER="$(/usr/bin/batocera-settings-get system.idlewatcher.extendedtimer)"
+    if [[ -z "$EXTENDED_TIMER" || ! "$EXTENDED_TIMER" =~ ^[0-9]+$ || "$EXTENDED_TIMER" -lt 60 ]]; then
+        EXTENDED_TIMER="$(/usr/bin/batocera-settings-get system.batterysaver.extendedtimer)"
+    fi
     if [[ -z "$EXTENDED_TIMER" || ! "$EXTENDED_TIMER" =~ ^[0-9]+$ || "$EXTENDED_TIMER" -lt 60 ]]; then
         EXTENDED_TIMER="900" # default in seconds. Only applicable if mode is dim or dispoff
-        /usr/bin/batocera-settings-set system.batterysaver.extendedtimer "$EXTENDED_TIMER"
     fi
 
     AGGRESSIVE="$(/usr/bin/batocera-settings-get system.batterysaver.aggressive)"
@@ -95,6 +101,7 @@ initialize_settings() {
         AGGRESSIVE="0" # default
         /usr/bin/batocera-settings-set system.batterysaver.aggressive "$AGGRESSIVE"
     fi
+
 }
 
 animate_brightness() {

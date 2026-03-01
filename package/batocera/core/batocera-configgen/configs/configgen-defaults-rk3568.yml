@@ -19,6 +19,12 @@ ps2:
 flash:
   emulator: lightspark
   core:     lightspark
+n64:
+  emulator: libretro
+  core:     mupen64plus-next
+n64dd:
+  emulator: libretro
+  core:     mupen64plus-next
 cdi:
   emulator: libretro
   core:     same_cdi
