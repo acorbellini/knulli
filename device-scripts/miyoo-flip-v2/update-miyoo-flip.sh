@@ -97,6 +97,8 @@ if [ -n "$ROOTFS" ]; then
     echo "    Rootfs: $BOOT_DIR/$ROOTFS ($(wc -c < "$BOOT_DIR/$ROOTFS" | tr -d ' ') bytes)"
 fi
 echo "    SHARE:  UNTOUCHED"
+echo "    NOTE:   Bootloader (idbloader/uboot) is NOT updated by this script."
+echo "            Use write-miyoo-flip-patched-bootimg.sh for a full reflash."
 echo ""
 
 # Step 1: Read current boot.img from SD card

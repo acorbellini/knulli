@@ -140,6 +140,16 @@ make O="${REMOTE_OUTPUT_DIR}" \
     -C "${REMOTE_PROJECT_DIR}/buildroot" \
     -j${NPROC}
 BUILD_EOF
+
+        # Auto-copy build artifacts to local host
+        echo ""
+        echo "==> Build complete. Copying artifacts..."
+        mkdir -p "${OUTPUT_DIR}/${TARGET}"
+        rsync -avz --progress \
+            "${REMOTE_HOST}:${REMOTE_OUTPUT_DIR}/images/knulli/images/miyoo-flip/" \
+            "${OUTPUT_DIR}/${TARGET}/" \
+            && echo "==> Artifacts copied to ${OUTPUT_DIR}/${TARGET}/" \
+            || echo "Warning: Could not copy artifacts."
         ;;
     shell)
         echo "==> Opening SSH shell on ${REMOTE_HOST}..."

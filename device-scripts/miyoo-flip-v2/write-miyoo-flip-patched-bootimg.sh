@@ -33,6 +33,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 GAMMAOS_64MB="${SCRIPT_DIR}/gammaos-dump/first-64mb.bin"
 GAMMAOS_BOOT_IMG="${PROJECT_DIR}/gammaloader/gammaos_core/extracted/boot.img"
+BOARD_DIR="${PROJECT_DIR}/board/batocera/rockchip/rk3566/miyoo-flip"
 
 # Find the latest boot tarball
 BOOT_TARBALL=$(ls -t "${PROJECT_DIR}/output/rk3566-bsp/knulli-rk3568-miyoo-flip-gladiator-ii-"*"_boot.tar.gz" 2>/dev/null | head -1)
@@ -218,12 +219,21 @@ BOOT_IMG="${WORK}/patched-boot.img"
 
 echo ""
 echo "==> Unmounting..."
-diskutil unmountDisk "$DISK"
+diskutil unmountDisk force "$DISK"
 
 echo "==> Writing GammaOS first 64MB (GPT + bootloader)..."
 dd if="$GAMMAOS_64MB" of="$RDISK" bs=1048576 conv=notrunc 2>&1
 
+echo "==> Writing updated idbloader (DDR V1.23) at sector 64..."
+diskutil unmountDisk force "$DISK" 2>/dev/null || true
+dd if="${BOARD_DIR}/idbloader.img" of="$RDISK" bs=512 seek=64 conv=notrunc 2>&1
+
+echo "==> Writing updated uboot.img (BL31 V1.44) at sector 16384..."
+diskutil unmountDisk force "$DISK" 2>/dev/null || true
+dd if="${BOARD_DIR}/uboot.img" of="$RDISK" bs=512 seek=16384 conv=notrunc 2>&1
+
 echo "==> Writing patched boot.img to sector 51200..."
+diskutil unmountDisk force "$DISK" 2>/dev/null || true
 # Pad boot.img to 512-byte boundary (rdisk requires sector-aligned writes)
 BOOTIMG_SIZE=$(wc -c < "$BOOT_IMG" | tr -d ' ')
 REMAINDER=$(( BOOTIMG_SIZE % 512 ))
@@ -242,6 +252,7 @@ if [ -z "$DISK_SECTORS" ]; then
     exit 1
 fi
 echo ""
+diskutil unmountDisk force "$DISK" 2>/dev/null || true
 echo "==> Writing GPT partition table directly..."
 python3 << PYEOF
 import struct, binascii, uuid
@@ -269,12 +280,12 @@ def make_entry(tguid, first, last, name):
     return e
 BATOCERA_START, BATOCERA_SIZE = 155648, 8388608
 SHARE_START = BATOCERA_START + BATOCERA_SIZE + 2048
-SHARE_SIZE = 1048576
+SHARE_LAST = DISK_SECTORS - 34  # fill remaining disk
 entries = bytearray(128 * 128)
 for i, e in enumerate(gammaos_entries):
     entries[i*128:(i+1)*128] = e
 entries[7*128:8*128] = make_entry(MSBASIC_GUID, BATOCERA_START, BATOCERA_START+BATOCERA_SIZE-1, 'BATOCERA')
-entries[8*128:9*128] = make_entry(MSBASIC_GUID, SHARE_START, SHARE_START+SHARE_SIZE-1, 'SHARE')
+entries[8*128:9*128] = make_entry(MSBASIC_GUID, SHARE_START, SHARE_LAST, 'SHARE')
 entries_crc = binascii.crc32(bytes(entries)) & 0xFFFFFFFF
 LAST_USABLE = DISK_SECTORS - 34
 DISK_GUID = bytes.fromhex('23000000' + '0000' + '4C4A' + '8000' + '699000005ABB')
@@ -301,7 +312,7 @@ with open(DISK, 'r+b') as f:
     f.seek((DISK_SECTORS-33)*512); f.write(entries)
     f.seek((DISK_SECTORS-1)*512); f.write(make_hdr(DISK_SECTORS-1, 1, DISK_SECTORS-33))
 print(f"  BATOCERA: sectors {BATOCERA_START}-{BATOCERA_START+BATOCERA_SIZE-1}")
-print(f"  SHARE:    sectors {SHARE_START}-{SHARE_START+SHARE_SIZE-1}")
+print(f"  SHARE:    sectors {SHARE_START}-{SHARE_LAST}")
 print(f"  GPT written (primary + backup)")
 PYEOF
 
