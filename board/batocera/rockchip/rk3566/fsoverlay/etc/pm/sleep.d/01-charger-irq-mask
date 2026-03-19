@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Mask RK817 charger plug_in/plug_out IRQs during suspend so they
+# don't wake the system.  The RK817 PMIC IRQ GPIO is shared between
+# the power button and charger — without masking, any charger event
+# (plug/unplug) triggers a full resume cycle.
+#
+# RK817 I2C: bus 0, addr 0x20
+# INT_STS_MSK_REG1 (0xfb): bit 0 = PLUG_IN, bit 1 = PLUG_OUT
+#
+
+PMIC_BUS=0
+PMIC_ADDR=0x20
+MSK1_REG=0xfb
+SAVED_MSK1_FILE="/var/run/rk817-msk1-saved"
+
+case "$1" in
+    suspend|hibernate)
+        # Save current mask and mask charger IRQs (set bits 0,1)
+        cur=$(i2cget -f -y $PMIC_BUS $PMIC_ADDR $MSK1_REG 2>/dev/null)
+        echo "$cur" > "$SAVED_MSK1_FILE"
+        i2cset -f -y $PMIC_BUS $PMIC_ADDR $MSK1_REG 0xff 2>/dev/null
+        ;;
+    thaw|resume)
+        # Restore charger IRQ mask
+        if [ -f "$SAVED_MSK1_FILE" ]; then
+            saved=$(cat "$SAVED_MSK1_FILE")
+            i2cset -f -y $PMIC_BUS $PMIC_ADDR $MSK1_REG "$saved" 2>/dev/null
+            rm -f "$SAVED_MSK1_FILE"
+        else
+            # Fallback: unmask only PLUG_IN and PLUG_OUT
+            i2cset -f -y $PMIC_BUS $PMIC_ADDR $MSK1_REG 0xfc 2>/dev/null
+        fi
+        ;;
+esac
+
+exit 0

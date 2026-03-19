@@ -38,7 +38,7 @@ case "$1" in
         # even with the lid closed. Disable charger wakeup while keeping the
         # power button (rk805-pwrkey) as a valid wakeup source.
         for ps in ac usb; do
-            wakeup="/sys/class/power_supply/$ps/device/power/wakeup"
+            wakeup="/sys/class/power_supply/$ps/power/wakeup"
             [ -f "$wakeup" ] && echo disabled > "$wakeup" 2>/dev/null
         done
 
