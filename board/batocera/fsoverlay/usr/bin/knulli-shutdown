@@ -32,6 +32,20 @@ do_poweroff() {
     else
         sync
 
+        # RK817 PMIC (Miyoo Flip): unbind USB host and disable boost
+        # converter before poweroff to prevent phantom VBUS voltage from
+        # triggering an immediate power-on after shutdown.
+        if [ -d /sys/bus/platform/drivers/ehci-platform ] && \
+           i2cget -f -y 0 0x20 0xf0 > /dev/null 2>&1; then
+            for d in /sys/bus/platform/drivers/ehci-platform/*/; do
+                [ -d "$d" ] && echo "$(basename "$d")" > /sys/bus/platform/drivers/ehci-platform/unbind 2>/dev/null
+            done
+            for d in /sys/bus/platform/drivers/ohci-platform/*/; do
+                [ -d "$d" ] && echo "$(basename "$d")" > /sys/bus/platform/drivers/ohci-platform/unbind 2>/dev/null
+            done
+            i2cset -f -y 0 0x20 0xb4 0x00 2>/dev/null
+        fi
+
         # Start a detached watchdog that force-powers-off after 15 seconds.
         # Must use setsid so it survives init's SIGTERM to all process groups
         # during the shutdown sequence (especially when called via ES's system()).
