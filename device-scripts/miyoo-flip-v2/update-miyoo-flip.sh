@@ -101,57 +101,124 @@ echo "    NOTE:   Bootloader (idbloader/uboot) is NOT updated by this script."
 echo "            Use write-miyoo-flip-patched-bootimg.sh for a full reflash."
 echo ""
 
-# Step 1: Read current boot.img from SD card
-echo "==> Step 1: Reading current boot.img from SD card..."
-diskutil unmountDisk "$DISK"
-
-# Read boot.img header to calculate size
-dd if="$RDISK" bs=2048 skip=$((51200 * 512 / 2048)) count=1 of="$WORK/boot-header.bin" 2>/dev/null
-
-BOOTIMG_DATA_SIZE=$(python3 -c "
-import struct
-with open('$WORK/boot-header.bin', 'rb') as f:
-    h = f.read(2048)
-if h[:8] != b'ANDROID!':
-    print('ERROR', file=__import__('sys').stderr)
-    exit(1)
-ks = struct.unpack_from('<I', h, 8)[0]
-rs = struct.unpack_from('<I', h, 16)[0]
-ss = struct.unpack_from('<I', h, 24)[0]
-ps = struct.unpack_from('<I', h, 36)[0]
-rds = struct.unpack_from('<I', h, 1632)[0]
-ds = struct.unpack_from('<I', h, 1648)[0]
-def p(s): return ((s + ps - 1) // ps) * ps
-# Data size + 2048 bytes for X.509 signature
-total = ps + p(ks) + p(rs) + p(ss) + p(rds) + p(ds) + 2048
-print(total)
-")
-
-if [ -z "$BOOTIMG_DATA_SIZE" ] || [ "$BOOTIMG_DATA_SIZE" = "ERROR" ]; then
-    echo "Error: No valid boot.img found at sector 51200."
-    echo "  Is this a Miyoo Flip SD card?"
+# Step 1: Patch stock boot.img with new kernel/initrd
+# Always start from the stock GammaOS boot.img to avoid corruption from
+# re-patching an already-patched image (DTB recompilation changes layout).
+GAMMAOS_BOOT_IMG="${PROJECT_DIR}/gammaloader/gammaos_core/extracted/boot.img"
+if [ ! -f "$GAMMAOS_BOOT_IMG" ]; then
+    echo "Error: Stock GammaOS boot.img not found at $GAMMAOS_BOOT_IMG"
     exit 1
 fi
 
-BOOTIMG_SECTORS=$(( (BOOTIMG_DATA_SIZE + 511) / 512 ))
-echo "  boot.img: $BOOTIMG_DATA_SIZE bytes ($BOOTIMG_SECTORS sectors)"
+echo "==> Step 1: Patching stock boot.img with new kernel + initrd..."
 
-dd if="$RDISK" bs=512 skip=51200 count=$BOOTIMG_SECTORS of="$WORK/current-boot.img" 2>/dev/null
-echo "  Read from sector 51200"
+# Re-compress initrd as GZIP (stock boot.img uses gzip ramdisk, not lz4)
+INITRD_LZ4="$BOOT_DIR/boot/initrd.lz4"
+unlz4 "$INITRD_LZ4" "$WORK/initrd.cpio"
+gzip -9 < "$WORK/initrd.cpio" > "$WORK/initrd.gz"
+rm -f "$WORK/initrd.cpio"
+echo "  initrd.lz4: $(wc -c < "$INITRD_LZ4" | tr -d ' ') bytes -> initrd.gz: $(wc -c < "$WORK/initrd.gz" | tr -d ' ') bytes"
 
-# Step 2: Re-patch boot.img with new kernel/initrd
+python3 << PYEOF
+import struct, shutil, os, hashlib
+
+shutil.copy('${GAMMAOS_BOOT_IMG}', '${WORK}/patched-boot.img')
+
+with open('${WORK}/patched-boot.img', 'r+b') as f:
+    header = bytearray(f.read(2048))
+    kernel_size = struct.unpack_from('<I', header, 8)[0]
+    ramdisk_size = struct.unpack_from('<I', header, 16)[0]
+    second_size = struct.unpack_from('<I', header, 24)[0]
+    page_size = struct.unpack_from('<I', header, 36)[0]
+    recovery_dtbo_size = struct.unpack_from('<I', header, 1632)[0]
+    dtb_size_val = struct.unpack_from('<I', header, 1648)[0]
+
+    def pages(size):
+        return ((size + page_size - 1) // page_size) * page_size
+
+    kernel_offset = page_size
+    ramdisk_offset = kernel_offset + pages(kernel_size)
+
+    with open('${BOOT_DIR}/boot/linux', 'rb') as kf:
+        new_kernel = kf.read()
+    with open('${WORK}/initrd.gz', 'rb') as rf:
+        new_initrd = rf.read()
+
+    if len(new_kernel) > kernel_size:
+        print(f"  ERROR: kernel too large! ({len(new_kernel)} > {kernel_size})")
+        exit(1)
+    if len(new_initrd) > ramdisk_size:
+        print(f"  ERROR: initrd too large! ({len(new_initrd)} > {ramdisk_size})")
+        exit(1)
+
+    f.seek(kernel_offset)
+    f.write(new_kernel)
+    if len(new_kernel) < kernel_size:
+        f.write(b'\x00' * (kernel_size - len(new_kernel)))
+    print(f"  Kernel: {len(new_kernel)} bytes (stock: {kernel_size})")
+
+    f.seek(ramdisk_offset)
+    f.write(new_initrd)
+    if len(new_initrd) < ramdisk_size:
+        f.write(b'\x00' * (ramdisk_size - len(new_initrd)))
+    print(f"  Ramdisk: {len(new_initrd)} bytes (stock: {ramdisk_size})")
+
+    new_cmdline = b'label=BATOCERA rootwait loglevel=7 console=tty0 console=ttyFIQ0'
+    header[64:64+len(new_cmdline)] = new_cmdline
+    header[64+len(new_cmdline):576] = b'\x00' * (512 - len(new_cmdline))
+    header[608:1632] = b'\x00' * 1024
+    print(f"  Cmdline: {new_cmdline.decode()}")
+
+    rsce_offset = ramdisk_offset + pages(ramdisk_size)
+    bootargs_needle = b'mtdparts=spi-nand0:'
+    replacement = b'label=BATOCERA loglevel=7'
+    search_start = rsce_offset
+    patch_count = 0
+    while True:
+        f.seek(0)
+        full_data = f.read()
+        ba_idx = full_data.find(bootargs_needle, search_start)
+        if ba_idx < 0:
+            break
+        ba_end = full_data.index(b'\x00', ba_idx)
+        old_len = ba_end - ba_idx
+        f.seek(ba_idx)
+        f.write(replacement + b' ' * (old_len - len(replacement)))
+        patch_count += 1
+        search_start = ba_idx + old_len
+    print(f"  DTB bootargs: patched {patch_count} instance(s)")
+
+    second_offset = rsce_offset
+    f.seek(kernel_offset); kernel_data = f.read(kernel_size)
+    f.seek(ramdisk_offset); ramdisk_data = f.read(ramdisk_size)
+    f.seek(second_offset); second_data = f.read(second_size)
+    recovery_dtbo_data = b''
+    if recovery_dtbo_size > 0:
+        f.seek(second_offset + pages(second_size))
+        recovery_dtbo_data = f.read(recovery_dtbo_size)
+    dtb_offset = second_offset + pages(second_size) + pages(recovery_dtbo_size)
+    f.seek(dtb_offset); dtb_data = f.read(dtb_size_val)
+
+    h = hashlib.sha1()
+    h.update(kernel_data); h.update(struct.pack('<I', kernel_size))
+    h.update(ramdisk_data); h.update(struct.pack('<I', ramdisk_size))
+    h.update(second_data); h.update(struct.pack('<I', second_size))
+    h.update(recovery_dtbo_data); h.update(struct.pack('<I', recovery_dtbo_size))
+    h.update(dtb_data); h.update(struct.pack('<I', dtb_size_val))
+    new_sha = h.digest()
+
+    header[576:596] = new_sha
+    header[596:608] = b'\x00' * 12
+    f.seek(0)
+    f.write(header)
+    print(f"  SHA-1: {bytes(header[576:596]).hex()}")
+    print(f"  Output: {os.path.getsize('${WORK}/patched-boot.img')} bytes")
+PYEOF
+
+# Step 2: Write patched boot.img to SD card
 echo ""
-echo "==> Step 2: Patching boot.img with new kernel + initrd..."
-python3 "$PATCH_BOOTIMG" \
-    --stock-bootimg "$WORK/current-boot.img" \
-    --kernel "$BOOT_DIR/boot/linux" \
-    --initrd "$BOOT_DIR/boot/initrd.lz4" \
-    --output "$WORK/patched-boot.img"
-
-# Step 3: Write patched boot.img back to SD card
-echo ""
-echo "==> Step 3: Writing patched boot.img to SD card..."
-diskutil unmountDisk "$DISK" 2>/dev/null || true
+echo "==> Step 2: Writing patched boot.img to SD card..."
+diskutil unmountDisk force "$DISK" 2>/dev/null || true
 
 # Pad to sector boundary
 PATCHEDSIZE=$(wc -c < "$WORK/patched-boot.img" | tr -d ' ')
@@ -164,7 +231,7 @@ fi
 dd if="$WORK/patched-boot.img" of="$RDISK" bs=512 seek=51200 conv=notrunc 2>&1
 echo "  Written to sector 51200"
 
-# Step 4: Update BATOCERA partition
+# Step 3: Update BATOCERA partition
 echo ""
 echo "==> Step 4: Updating BATOCERA partition..."
 

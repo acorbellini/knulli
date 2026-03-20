@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+Date: Thu, 20 Mar 2026 00:00:00 -0300
+Subject: [PATCH] mfd: rk808: disable boost converter in RK817 syscore shutdown
+ to prevent VBUS power-on
+
+On some RK3566 boards (e.g. Miyoo Flip), the USB port generates a
+transient voltage on VBUS during system poweroff. The RK817 PMIC
+detects this as a charger plug-in event (ON_SOURCE=0x10) and
+immediately powers back on, causing the device to reboot instead of
+staying off.
+
+The RK817 path does not set device_shutdown_fn, so syscore_ops are
+never registered and rk8xx_syscore_shutdown() never runs. The boost
+converter stays enabled throughout the entire shutdown sequence,
+allowing VBUS transients to trigger PMIC power-on.
+
+Fix this by:
+1. Always registering rk8xx_syscore_ops when the PMIC is a system
+   power controller (not only when device_shutdown_fn is set).
+2. Disabling the boost converter and OTG switch (POWER_EN_REG(3))
+   in rk8xx_syscore_shutdown(), right before the SLP pin is set to
+   shutdown mode. At this point all device drivers have been stopped,
+   so the regulator framework cannot re-enable the boost.
+
+Signed-off-by: Alejandro Corbellini <acorbellini@users.noreply.github.com>
+---
+ drivers/mfd/rk808.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+--- a/drivers/mfd/rk808.c
++++ b/drivers/mfd/rk808.c
+@@ -806,6 +806,12 @@
+ 	 */
+ 	if (system_state == SYSTEM_POWER_OFF) {
+ 		if (rk808->variant == RK809_ID || rk808->variant == RK817_ID) {
++			/* Disable boost converter and OTG switch to prevent
++			 * phantom VBUS voltage from triggering an immediate
++			 * PMIC power-on after shutdown.
++			 */
++			regmap_write(rk808->regmap,
++				     RK817_POWER_EN_REG(3), 0x00);
+ 			ret = regmap_update_bits(rk808->regmap,
+ 						 RK817_SYS_CFG(3),
+ 						 RK817_SLPPIN_FUNC_MSK,
+@@ -1331,8 +1337,9 @@
+ 		if (!pm_power_off_prepare)
+ 			pm_power_off_prepare = rk808->pm_pwroff_prep_fn;
+
++		register_syscore_ops(&rk808_syscore_ops);
++
+ 		if (device_shutdown_fn) {
+-			register_syscore_ops(&rk808_syscore_ops);
+ 			/* power off system in the syscore shutdown ! */
+ 			pm_shutdown = device_shutdown_fn;
+ 		}
